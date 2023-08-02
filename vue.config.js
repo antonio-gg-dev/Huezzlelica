@@ -4,6 +4,6 @@ module.exports = defineConfig({
   transpileDependencies: true,
   pwa: {
     name: 'Huezzlelica',
-    themeColor: '#2ecc71',
+    themeColor: '#2ecc71'
   }
 })

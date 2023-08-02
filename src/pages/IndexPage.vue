@@ -1,5 +1,5 @@
 <template>
-  <router-view/>
+  <h1>Index Page</h1>
 </template>
 
 <script lang="ts">
