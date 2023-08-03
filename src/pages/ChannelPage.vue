@@ -1,12 +1,27 @@
 <template>
-  <h1>Channel {{ channel }} Page</h1>
+  <GameBoard
+    :color-generator="colorGenerator"
+    :random="random"
+  />
 </template>
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue'
 import { Client } from 'tmi.js'
+import GameBoard from '@/components/GameBoard.vue'
+import { bindings } from '@/bindings'
 
 export default defineComponent({
+  components: {
+    GameBoard
+  },
+
+  data () {
+    return {
+      ...bindings
+    }
+  },
+
   props: {
     channel: {
       required: true,

@@ -1,10 +1,14 @@
 <template>
-  <h1>Index Page</h1>
+  <ChannelChooser />
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import ChannelChooser from '@/components/ChannelChooser.vue'
 
 export default defineComponent({
+  components: {
+    ChannelChooser
+  }
 })
 </script>
