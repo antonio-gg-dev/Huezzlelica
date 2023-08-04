@@ -2,14 +2,15 @@
   <GameBoard
     :color-generator="colorGenerator"
     :random="random"
+    :chat="chat"
   />
 </template>
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue'
-import { Client } from 'tmi.js'
 import GameBoard from '@/components/GameBoard.vue'
 import { bindings } from '@/bindings'
+import { Chat } from 'twitch-js'
 
 export default defineComponent({
   components: {
@@ -18,7 +19,9 @@ export default defineComponent({
 
   data () {
     return {
-      ...bindings
+      ...bindings,
+      acceptingResponses: false,
+      chat: null as Chat | null
     }
   },
 
@@ -29,14 +32,19 @@ export default defineComponent({
     }
   },
 
+  methods: {
+    async connectToChat () {
+      const chat = new Chat({})
+
+      await chat.connect()
+      await chat.join(this.channel)
+
+      this.chat = chat
+    }
+  },
+
   mounted () {
-    const client = new Client({
-      channels: [this.channel]
-    })
-    client.connect().catch(console.error)
-    client.on('message', (channel, tags, message, self) => {
-      console.log({ channel, tags, message, self })
-    })
+    this.connectToChat()
   }
 })
 </script>

@@ -30,6 +30,8 @@
     >
       {{ colorOption }}{{ colorOption === correctColor ? '&nbsp;' : '' }}
     </div>
+
+    <button @click="startRound">New Round ({{ round }}) [{{ optionsCount }}]</button>
   </div>
 </template>
 
@@ -37,6 +39,7 @@
 import { defineComponent, PropType } from 'vue'
 import { ColorGenerator } from '@/services/ColorGenerator'
 import { Random } from '@/services/Random'
+import { Chat, PrivateMessages } from 'twitch-js'
 
 export default defineComponent({
   props: {
@@ -47,25 +50,82 @@ export default defineComponent({
     random: {
       required: true,
       type: Random as PropType<Random>
+    },
+    chat: {
+      default: null,
+      type: Chat as PropType<Chat | null>
     }
   },
 
   data () {
-    const firstColor = this.colorGenerator.generateMain()
-    const secondColor = this.colorGenerator.generateMain(firstColor)
-    const correctColor = this.colorGenerator.responseMix(firstColor, secondColor)
-
     return {
-      firstColor,
-      secondColor,
-      correctColor,
-      colorOptions: [
-        correctColor,
-        this.colorGenerator.responseVariation(correctColor),
-        this.colorGenerator.responseVariation(correctColor),
-        this.colorGenerator.responseVariation(correctColor)
-      ].sort(() => this.random.from([-1, 1]))
+      firstColor: this.colorGenerator.generateMain(),
+      secondColor: null as string | null,
+      correctColor: null as string | null,
+      colorOptions: [] as string[],
+      round: 0
     }
+  },
+
+  computed: {
+    optionsCount (): number {
+      return 2
+    }
+  },
+
+  methods: {
+    handleChat (event: PrivateMessages): void {
+      const { message, tags: { displayName: user } } = event
+      console.log({ user, message, event })
+    },
+
+    async sleep (milliseconds: number): Promise<void> {
+      return new Promise((resolve) => setTimeout(resolve, milliseconds))
+    },
+
+    async startRound (): Promise<void> {
+      if (this.secondColor) {
+        this.firstColor = this.secondColor
+      }
+      this.round++
+      this.secondColor = null
+      this.colorOptions = []
+
+      await this.sleep(200)
+      this.secondColor = this.colorGenerator.generateMain(this.firstColor)
+      await this.sleep(200)
+
+      const correctColor = this.colorGenerator.responseMix(this.firstColor, this.secondColor)
+      this.correctColor = correctColor
+      const colorOptions = Array.from(
+        { length: this.optionsCount - 1 },
+        () => this.colorGenerator.responseVariation(correctColor)
+      )
+      colorOptions.push(correctColor)
+      colorOptions.sort(() => this.random.from([-1, 1]))
+
+      await colorOptions.reduce(async (promise, colorOption) => {
+        await promise
+
+        this.colorOptions.push(colorOption)
+
+        await this.sleep(200)
+      }, Promise.resolve())
+    }
+  },
+
+  watch: {
+    chat () {
+      if (!this.chat) {
+        return
+      }
+
+      this.chat.on(Chat.Events.PRIVATE_MESSAGE, this.handleChat)
+    }
+  },
+
+  mounted () {
+    this.startRound()
   }
 })
 </script>
