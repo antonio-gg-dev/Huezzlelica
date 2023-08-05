@@ -1,37 +1,81 @@
 <template>
-  <div>
+  <div class="game-board__container">
     <div
-      :style="{
-        color: '#fff',
-        backgroundColor: firstColor
-      }"
+      v-if="highScoreRound && highScoreUser"
+      class="game-board__high-score"
     >
-      {{ firstColor }}
+      HIGH SCORE:
+      <span class="game-board__high-score-alt">
+        {{ highScoreRound }}
+      </span><br>
+      by
+      <span class="game-board__high-score-alt">
+        {{ highScoreUser }}
+      </span>
     </div>
 
-    <div
-      :style="{
-        color: '#fff',
-        backgroundColor: secondColor
-      }"
-    >
-      {{ secondColor }}
+    <div class="game-board__round">
+      Round {{ round }}
     </div>
 
-    <hr>
+    <TransitionGroup
+      tag="div"
+      class="game-board__question"
+      name="game-board__fade"
+    >
+      <div
+        class="game-board__cell"
+        :style="{
+          backgroundColor: firstColor
+        }"
+        :key="firstColor"
+      >
+      </div>
+
+      <div
+        v-if="secondColor"
+        class="game-board__cell"
+        :style="{
+          backgroundColor: secondColor
+        }"
+        :key="secondColor"
+      >
+      </div>
+    </TransitionGroup>
+
+    <TransitionGroup
+      tag="div"
+      class="game-board__answers"
+      name="game-board__fade"
+    >
+      <div
+        v-for="colorOption in colorOptions"
+        class="game-board__cell"
+        :style="{
+          backgroundColor: colorOption.color,
+          color: colorOption === correctOption && '#fff'
+        }"
+        :key="colorOption.color"
+      >
+        {{ colorOption.number }}
+      </div>
+    </TransitionGroup>
 
     <div
-      v-for="colorOption in colorOptions"
-      :style="{
-        color: '#fff',
-        backgroundColor: colorOption
-      }"
-      :key="colorOption"
+      v-if="lastUser"
+      class="game-board__footer"
     >
-      {{ colorOption }}{{ colorOption === correctColor ? '&nbsp;' : '' }}
+      {{ lastUser }}
     </div>
-
-    <button @click="startRound">New Round ({{ round }}) [{{ optionsCount }}]</button>
+    <div
+      v-else-if="shamedUser"
+      class="game-board__footer game-board__footer--shame"
+    >
+      Shame on
+      <span class="game-board__footer-alt">
+        {{ shamedUser }}
+      </span>!
+    </div>
   </div>
 </template>
 
@@ -40,6 +84,17 @@ import { defineComponent, PropType } from 'vue'
 import { ColorGenerator } from '@/services/ColorGenerator'
 import { Random } from '@/services/Random'
 import { Chat, PrivateMessages } from 'twitch-js'
+
+interface Option {
+  color: string
+  number: number
+}
+
+const enum Status {
+  startingGame = 'startingGame',
+  generatingRound = 'generatingRound',
+  waitingForResponse = 'waitingForResponse',
+}
 
 export default defineComponent({
   props: {
@@ -59,24 +114,86 @@ export default defineComponent({
 
   data () {
     return {
-      firstColor: this.colorGenerator.generateMain(),
+      firstColor: this.colorGenerator.generateMain() as string | null,
       secondColor: null as string | null,
-      correctColor: null as string | null,
-      colorOptions: [] as string[],
-      round: 0
+      correctOption: null as Option | null,
+      colorOptions: [] as Option[],
+      round: 0 as number,
+      lastUser: null as string | null,
+      status: Status.startingGame as Status,
+      shamedUser: null as string | null,
+      highScoreUser: null as string | null,
+      highScoreRound: null as number | null
     }
   },
 
   computed: {
     optionsCount (): number {
-      return 2
+      let round = this.round
+
+      if ((round -= 10) <= 0) return 2
+      if ((round -= 9) <= 0) return 3
+      if ((round -= 8) <= 0) return 4
+      if ((round -= 7) <= 0) return 5
+      if ((round -= 6) <= 0) return 6
+      if ((round -= 5) <= 0) return 7
+      if ((round -= 4) <= 0) return 8
+
+      return 9
     }
   },
 
   methods: {
     handleChat (event: PrivateMessages): void {
       const { message, tags: { displayName: user } } = event
-      console.log({ user, message, event })
+
+      console.log({ user, message })
+
+      if (
+        this.status !== Status.waitingForResponse
+        // this.lastUser === user
+      ) {
+        return
+      }
+
+      const response = parseInt(message)
+
+      if (`${response}` !== message) {
+        return
+      }
+
+      if (response !== this.correctOption?.number) {
+        this.finishGame(user)
+        return
+      }
+
+      this.lastUser = user
+      this.startRound()
+    },
+
+    async finishGame (user: string): Promise<void> {
+      this.status = Status.startingGame
+
+      this.shamedUser = user
+
+      if (
+        !this.highScoreRound ||
+        this.highScoreRound < this.round - 1
+      ) {
+        this.highScoreUser = this.lastUser
+        this.highScoreRound = this.round - 1
+      }
+
+      this.round = 0
+      this.lastUser = null
+
+      this.secondColor = null
+      this.firstColor = null
+
+      await this.sleep(250)
+
+      this.firstColor = this.colorGenerator.generateMain()
+      await this.startRound()
     },
 
     async sleep (milliseconds: number): Promise<void> {
@@ -84,24 +201,44 @@ export default defineComponent({
     },
 
     async startRound (): Promise<void> {
+      if (
+        !this.firstColor ||
+        this.status === Status.generatingRound
+      ) {
+        return
+      }
+
+      this.status = Status.generatingRound
+
       if (this.secondColor) {
         this.firstColor = this.secondColor
       }
+
       this.round++
       this.secondColor = null
       this.colorOptions = []
 
-      await this.sleep(200)
+      await this.sleep(250)
       this.secondColor = this.colorGenerator.generateMain(this.firstColor)
-      await this.sleep(200)
+      await this.sleep(250)
 
-      const correctColor = this.colorGenerator.responseMix(this.firstColor, this.secondColor)
-      this.correctColor = correctColor
-      const colorOptions = Array.from(
+      const correctOption = {
+        color: this.colorGenerator.responseMix(this.firstColor, this.secondColor),
+        number: this.random.intMinMax(1, this.optionsCount)
+      }
+
+      console.log(this.optionsCount)
+
+      this.correctOption = correctOption
+
+      const colorOptions: Option[] = Array.from(
         { length: this.optionsCount - 1 },
-        () => this.colorGenerator.responseVariation(correctColor)
+        (_, index) => ({
+          color: this.colorGenerator.responseVariation(correctOption.color),
+          number: index + (index < correctOption.number - 1 ? 1 : 2)
+        })
       )
-      colorOptions.push(correctColor)
+      colorOptions.push(correctOption)
       colorOptions.sort(() => this.random.from([-1, 1]))
 
       await colorOptions.reduce(async (promise, colorOption) => {
@@ -109,8 +246,10 @@ export default defineComponent({
 
         this.colorOptions.push(colorOption)
 
-        await this.sleep(200)
+        await this.sleep(250)
       }, Promise.resolve())
+
+      this.status = Status.waitingForResponse
     }
   },
 
@@ -131,4 +270,97 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+.game-board {
+  &__container {
+    display: grid;
+    gap: 1rem;
+    background-color: #fff;
+    height: 36rem;
+    width: 24rem;
+    aspect-ratio: 1 / 1;
+    border-radius: 2rem;
+    padding: 2rem;
+    grid-template-areas:
+      "high-score"
+      "round"
+      "question"
+      "answers"
+      "footer";
+    grid-template-rows: 4rem auto auto 1fr 1.2rem;
+  }
+
+  &__high-score {
+    line-height: 1;
+    text-align: center;
+    font-weight: 300;
+    font-size: 2rem;
+    grid-area: high-score;
+  }
+
+  &__high-score-alt {
+    font-weight: 700;
+    color: #444;
+  }
+
+  &__round {
+    line-height: 1;
+    text-align: center;
+    font-size: 1.2rem;
+    grid-area: round;
+  }
+
+  &__question {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    grid-area: question;
+  }
+
+  &__fade-enter-from,
+  &__fade-leave-to {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  &__cell {
+    height: 5rem;
+    width: 6rem;
+    transition: all 0.2s linear;
+    display: grid;
+    place-content: center;
+    font-size: 3rem;
+    padding-top: 0.5rem;
+    color: #fff;
+    text-shadow:
+      0 0 0.2rem #000;
+  }
+
+  &__answers {
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    grid-area: answers;
+  }
+
+  &__footer {
+    line-height: 1;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #444;
+    grid-area: footer;
+
+    &--shame {
+      font-weight: 300;
+      color: #000;
+    }
+  }
+
+  &__footer-alt {
+    font-weight: 700;
+    color: #444;
+  }
+}
 </style>

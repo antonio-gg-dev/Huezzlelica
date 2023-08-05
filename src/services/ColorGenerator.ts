@@ -21,6 +21,7 @@ export class ColorGenerator {
 
     const contrast = Color.contrast(color, pairColor, { algorithm: 'wcag21' })
 
+    // TODO: Fix pair color generation
     if (contrast < 1.6 || contrast > 1.7) {
       color = this.generateMain(pairColor)
     }

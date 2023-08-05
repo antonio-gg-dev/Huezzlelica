@@ -9,3 +9,24 @@
 strong {
   font-weight: 700;
 }
+
+html {
+  width: 100svw;
+  height: 100svh;
+  overflow: hidden;
+}
+
+body {
+  width: 100svw;
+  height: 100svh;
+  overflow: hidden;
+  margin: 0;
+  background-color: #eee;
+}
+
+#app {
+  height: 100svh;
+  width: 100svw;
+  display: grid;
+  place-items: center;
+}
