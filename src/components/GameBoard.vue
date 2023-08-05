@@ -1,7 +1,7 @@
 <template>
   <div class="game-board__container">
     <div
-      v-if="highScoreRound && highScoreUser"
+      v-if="highScoreRound && highScoreUserName"
       class="game-board__high-score"
     >
       HIGH SCORE:
@@ -9,8 +9,13 @@
         {{ highScoreRound }}
       </span><br>
       by
-      <span class="game-board__high-score-alt">
-        {{ highScoreUser }}
+      <span
+        class="game-board__high-score-alt"
+        :style="{
+          '--color': highScoreUserColor
+        }"
+      >
+        {{ highScoreUserName }}
       </span>
     </div>
 
@@ -26,7 +31,7 @@
       <div
         class="game-board__cell"
         :style="{
-          backgroundColor: firstColor
+          '--color': firstColor
         }"
         :key="firstColor"
       >
@@ -36,7 +41,7 @@
         v-if="secondColor"
         class="game-board__cell"
         :style="{
-          backgroundColor: secondColor
+          '--color': secondColor
         }"
         :key="secondColor"
       >
@@ -52,28 +57,40 @@
         v-for="colorOption in colorOptions"
         class="game-board__cell"
         :style="{
-          backgroundColor: colorOption.color,
-          color: colorOption === correctOption && '#fff'
+          '--color': colorOption.color
         }"
         :key="colorOption.color"
       >
-        {{ colorOption.number }}
+        <span
+          class="game-board__cell-number"
+          v-if="status === Status.waitingForResponse"
+        >
+          {{ colorOption.number }}
+        </span>
       </div>
     </TransitionGroup>
 
     <div
-      v-if="lastUser"
+      v-if="lastUserName"
       class="game-board__footer"
+      :style="{
+        '--color': lastUserColor
+      }"
     >
-      {{ lastUser }}
+      {{ lastUserName }}
     </div>
     <div
-      v-else-if="shamedUser"
+      v-else-if="shamedUserName"
       class="game-board__footer game-board__footer--shame"
     >
       Shame on
-      <span class="game-board__footer-alt">
-        {{ shamedUser }}
+      <span
+        class="game-board__footer-alt"
+        :style="{
+          '--color': shamedUserColor
+        }"
+      >
+        {{ shamedUserName }}
       </span>!
     </div>
   </div>
@@ -83,14 +100,14 @@
 import { defineComponent, PropType } from 'vue'
 import { ColorGenerator } from '@/services/ColorGenerator'
 import { Random } from '@/services/Random'
-import { Chat, PrivateMessages } from 'twitch-js'
+import { Chat } from 'twitch-js'
 
 interface Option {
   color: string
   number: number
 }
 
-const enum Status {
+enum Status {
   startingGame = 'startingGame',
   generatingRound = 'generatingRound',
   waitingForResponse = 'waitingForResponse',
@@ -119,15 +136,22 @@ export default defineComponent({
       correctOption: null as Option | null,
       colorOptions: [] as Option[],
       round: 0 as number,
-      lastUser: null as string | null,
+      lastUserName: null as string | null,
+      lastUserColor: null as string | null,
       status: Status.startingGame as Status,
-      shamedUser: null as string | null,
-      highScoreUser: null as string | null,
+      shamedUserName: null as string | null,
+      shamedUserColor: null as string | null,
+      highScoreUserName: null as string | null,
+      highScoreUserColor: null as string | null,
       highScoreRound: null as number | null
     }
   },
 
   computed: {
+    Status () {
+      return Status
+    },
+
     optionsCount (): number {
       let round = this.round
 
@@ -144,14 +168,19 @@ export default defineComponent({
   },
 
   methods: {
-    handleChat (event: PrivateMessages): void {
-      const { message, tags: { displayName: user } } = event
-
-      console.log({ user, message })
+    // eslint-disable-next-line
+    handleChat (event: any): void {
+      const {
+        message,
+        tags: {
+          color: userColor,
+          displayName: userName
+        }
+      } = event
 
       if (
         this.status !== Status.waitingForResponse
-        // this.lastUser === user
+        // this.lastUserName === userName
       ) {
         return
       }
@@ -163,29 +192,32 @@ export default defineComponent({
       }
 
       if (response !== this.correctOption?.number) {
-        this.finishGame(user)
+        this.finishGame(userName, userColor)
         return
       }
 
-      this.lastUser = user
+      this.lastUserName = userName
+      this.lastUserColor = userColor
       this.startRound()
     },
 
-    async finishGame (user: string): Promise<void> {
+    async finishGame (userName: string, userColor: string): Promise<void> {
       this.status = Status.startingGame
 
-      this.shamedUser = user
+      this.shamedUserName = userName
+      this.shamedUserColor = userColor
 
       if (
         !this.highScoreRound ||
         this.highScoreRound < this.round - 1
       ) {
-        this.highScoreUser = this.lastUser
+        this.highScoreUserName = this.lastUserName
+        this.highScoreUserColor = this.lastUserColor
         this.highScoreRound = this.round - 1
       }
 
       this.round = 0
-      this.lastUser = null
+      this.lastUserName = null
 
       this.secondColor = null
       this.firstColor = null
@@ -219,15 +251,13 @@ export default defineComponent({
       this.colorOptions = []
 
       await this.sleep(250)
-      this.secondColor = this.colorGenerator.generateMain(this.firstColor)
+      this.secondColor = this.colorGenerator.generatePair(this.firstColor)
       await this.sleep(250)
 
       const correctOption = {
         color: this.colorGenerator.responseMix(this.firstColor, this.secondColor),
         number: this.random.intMinMax(1, this.optionsCount)
       }
-
-      console.log(this.optionsCount)
 
       this.correctOption = correctOption
 
@@ -299,7 +329,8 @@ export default defineComponent({
 
   &__high-score-alt {
     font-weight: 700;
-    color: #444;
+    color: var(--color, #444);
+    text-shadow: 0 0 0.2rem #0008;
   }
 
   &__round {
@@ -330,9 +361,24 @@ export default defineComponent({
     place-content: center;
     font-size: 3rem;
     padding-top: 0.5rem;
+    background-color: var(--color);
+  }
+
+  &__cell-number {
     color: #fff;
-    text-shadow:
-      0 0 0.2rem #000;
+    text-shadow: 0 0 0.2rem #000;
+    animation: fade 0.2s;
+
+    @keyframes fade {
+      from {
+        color: transparent;
+        text-shadow: 0 0 0.2rem transparent;
+      }
+      to {
+        color: #fff;
+        text-shadow: 0 0 0.2rem #000;
+      }
+    }
   }
 
   &__answers {
@@ -349,7 +395,8 @@ export default defineComponent({
     text-align: center;
     font-size: 1.2rem;
     font-weight: 700;
-    color: #444;
+    color: var(--color, #444);
+    text-shadow: 0 0 0.2rem #0008;
     grid-area: footer;
 
     &--shame {
@@ -360,7 +407,8 @@ export default defineComponent({
 
   &__footer-alt {
     font-weight: 700;
-    color: #444;
+    color: var(--color, #444);
+    text-shadow: 0 0 0.2rem #0008;
   }
 }
 </style>

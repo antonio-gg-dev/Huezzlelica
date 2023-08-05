@@ -6,27 +6,24 @@ export class ColorGenerator {
     private readonly random: Random
   ) {}
 
-  public generateMain (pairColor: string | null = null): string {
+  public generateMain (): string {
     const hue = this.random.minMax(0, 360)
     const saturation = this.random.minMax(60, 90)
     const lightness = this.random.minMax(40, 60)
 
-    let color = (new Color('hsl', [hue, saturation, lightness]))
+    return (new Color('hsl', [hue, saturation, lightness]))
       .to('srgb')
       .toString({ format: 'hex' })
+  }
 
-    if (!pairColor) {
-      return color
-    }
+  public generatePair (mainColor: string): string {
+    const color = new Color(mainColor)
 
-    const contrast = Color.contrast(color, pairColor, { algorithm: 'wcag21' })
+    color.hsl.h += this.random.minMax(30, 40) * this.random.from([-1, 1])
+    color.hsl.s += this.random.minMax(0, 30) * this.random.from([color.hsl.s > 60 ? -1 : 1, color.hsl.s < 90 ? 1 : -1])
+    color.hsl.l += this.random.minMax(0, 30) * this.random.from([color.hsl.l > 40 ? -1 : 1, color.hsl.l < 60 ? 1 : -1])
 
-    // TODO: Fix pair color generation
-    if (contrast < 1.6 || contrast > 1.7) {
-      color = this.generateMain(pairColor)
-    }
-
-    return color
+    return color.toString({ format: 'hex' })
   }
 
   public responseMix (firstColor: string, secondColor: string): string {
@@ -41,9 +38,9 @@ export class ColorGenerator {
 
   public responseVariation (responseColor: string): string {
     const color = new Color(responseColor)
-    color.hsl.h += this.random.minMax(0, 30) * this.random.from([-1, 1])
-    color.hsl.s += this.random.minMax(0, 30) * this.random.from([-1, 1])
-    color.hsl.l += this.random.minMax(0, 30) * this.random.from([-1, 1])
+    color.hsl.h += this.random.minMax(5, 20) * this.random.from([-1, 1])
+    color.hsl.s += this.random.minMax(5, 20) * this.random.from([-1, 1])
+    color.hsl.l += this.random.minMax(5, 20) * this.random.from([-1, 1])
 
     return color.toString({ format: 'hex' })
   }
