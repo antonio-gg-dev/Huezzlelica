@@ -1,27 +1,56 @@
 <template>
   <div class="game-board__container">
-    <div
-      v-if="highScoreRound && highScoreUserName"
-      class="game-board__high-score"
+    <TransitionGroup
+      tag="div"
+      class="game-board__cell game-board__cell--countdown-container"
+      name="game-board__rotate"
     >
-      HIGH SCORE:
-      <span class="game-board__high-score-alt">
-        {{ highScoreRound }}
-      </span><br>
-      by
       <span
-        class="game-board__high-score-alt"
-        :style="{
-          '--color': highScoreUserColor
-        }"
+        class="game-board__cell game-board__cell--countdown-text"
+        :key="countdown"
       >
-        {{ highScoreUserName }}
+        {{ countdown }}
       </span>
-    </div>
+    </TransitionGroup>
 
-    <div class="game-board__round">
-      Round {{ round }}
-    </div>
+    <TransitionGroup
+      tag="div"
+      class="game-board__high-score"
+      name="game-board__fade"
+    >
+      <span
+        v-if="highScoreRound && highScoreUserName"
+        class="game-board__high-score-text"
+      >
+        HIGH SCORE:
+        <span
+          class="game-board__high-score-alt"
+          :style="{ '--color': highScoreUserColor }"
+        >
+          {{ highScoreRound }}
+        </span><br>
+        by
+        <span
+          class="game-board__high-score-alt"
+          :style="{ '--color': highScoreUserColor }"
+        >
+          {{ highScoreUserName }}
+        </span>
+      </span>
+    </TransitionGroup>
+
+    <TransitionGroup
+      tag="div"
+      class="game-board__round"
+      name="game-board__fade"
+    >
+      <span
+        class="game-board__round-text"
+        :key="round"
+      >
+        Round {{ round }}
+      </span>
+    </TransitionGroup>
 
     <TransitionGroup
       tag="div"
@@ -29,20 +58,23 @@
       name="game-board__fade"
     >
       <div
+        v-if="firstColor"
         class="game-board__cell"
-        :style="{
-          '--color': firstColor
-        }"
+        :style="{ '--color': firstColor }"
         :key="firstColor"
+      >
+      </div>
+
+      <div
+        class="game-board__cell"
+        key="countdown"
       >
       </div>
 
       <div
         v-if="secondColor"
         class="game-board__cell"
-        :style="{
-          '--color': secondColor
-        }"
+        :style="{ '--color': secondColor }"
         :key="secondColor"
       >
       </div>
@@ -56,9 +88,7 @@
       <div
         v-for="colorOption in colorOptions"
         class="game-board__cell"
-        :style="{
-          '--color': colorOption.color
-        }"
+        :style="{ '--color': colorOption.color }"
         :key="colorOption.color"
       >
         <span
@@ -70,29 +100,33 @@
       </div>
     </TransitionGroup>
 
-    <div
-      v-if="lastUserName"
+    <TransitionGroup
+      tag="div"
       class="game-board__footer"
-      :style="{
-        '--color': lastUserColor
-      }"
+      name="game-board__fade"
     >
-      {{ lastUserName }}
-    </div>
-    <div
-      v-else-if="shamedUserName"
-      class="game-board__footer game-board__footer--shame"
-    >
+      <span
+        v-if="lastUserName"
+        class="game-board__last-user"
+        :style="{ '--color': lastUserColor }"
+        :key="lastUserName"
+      >
+        {{ lastUserName }}
+      </span>
+      <span
+        v-else-if="shamedUserName"
+        class="game-board__shamed-user"
+        :key="shamedUserName"
+      >
       Shame on
       <span
-        class="game-board__footer-alt"
-        :style="{
-          '--color': shamedUserColor
-        }"
+        class="game-board__shamed-user-alt"
+        :style="{ '--color': shamedUserColor }"
       >
         {{ shamedUserName }}
       </span>!
-    </div>
+    </span>
+    </TransitionGroup>
   </div>
 </template>
 
@@ -143,7 +177,8 @@ export default defineComponent({
       shamedUserColor: null as string | null,
       highScoreUserName: null as string | null,
       highScoreUserColor: null as string | null,
-      highScoreRound: null as number | null
+      highScoreRound: null as number | null,
+      countdown: 3 as string | number
     }
   },
 
@@ -179,8 +214,8 @@ export default defineComponent({
       } = event
 
       if (
-        this.status !== Status.waitingForResponse
-        // this.lastUserName === userName
+        this.status !== Status.waitingForResponse ||
+        this.lastUserName === userName
       ) {
         return
       }
@@ -241,16 +276,21 @@ export default defineComponent({
       }
 
       this.status = Status.generatingRound
+      this.countdown = 3
+      setTimeout(() => { this.countdown = 2 }, 1_000)
+      setTimeout(() => { this.countdown = 1 }, 2_000)
+      setTimeout(() => { this.countdown = '?' }, 3_000)
+      const generatingRoundTimer = this.sleep(3_200)
 
       if (this.secondColor) {
         this.firstColor = this.secondColor
+        this.secondColor = null
+        await this.sleep(250)
       }
 
       this.round++
-      this.secondColor = null
       this.colorOptions = []
 
-      await this.sleep(250)
       this.secondColor = this.colorGenerator.generatePair(this.firstColor)
       await this.sleep(250)
 
@@ -279,6 +319,7 @@ export default defineComponent({
         await this.sleep(250)
       }, Promise.resolve())
 
+      await generatingRoundTimer
       this.status = Status.waitingForResponse
     }
   },
@@ -316,7 +357,8 @@ export default defineComponent({
       "question"
       "answers"
       "footer";
-    grid-template-rows: 4rem auto auto 1fr 1.2rem;
+    grid-template-rows: 4rem 1.2rem 1fr 3fr 1.2rem;
+    position: relative;
   }
 
   &__high-score {
@@ -325,6 +367,13 @@ export default defineComponent({
     font-weight: 300;
     font-size: 2rem;
     grid-area: high-score;
+    position: relative;
+  }
+
+  &__high-score-text {
+    transition: all 0.2s linear;
+    position: absolute;
+    inset: 0;
   }
 
   &__high-score-alt {
@@ -338,6 +387,13 @@ export default defineComponent({
     text-align: center;
     font-size: 1.2rem;
     grid-area: round;
+    position: relative;
+  }
+
+  &__round-text {
+    transition: all 0.2s linear;
+    position: absolute;
+    inset: 0;
   }
 
   &__question {
@@ -345,12 +401,6 @@ export default defineComponent({
     gap: 0.5rem;
     justify-content: center;
     grid-area: question;
-  }
-
-  &__fade-enter-from,
-  &__fade-leave-to {
-    opacity: 0;
-    transform: scale(0.5);
   }
 
   &__cell {
@@ -362,6 +412,23 @@ export default defineComponent({
     font-size: 3rem;
     padding-top: 0.5rem;
     background-color: var(--color);
+
+    &--countdown-container {
+      position: absolute;
+      top: 9.2rem;
+      right: 50%;
+      transform: translateX(50%);
+      z-index: 10;
+    }
+
+    &--countdown-text {
+      transition: all 0.4s linear;
+      background: #fff8;
+      position: absolute;
+      border: solid 1px;
+      inset: 0;
+      backface-visibility: hidden;
+    }
   }
 
   &__cell-number {
@@ -395,20 +462,42 @@ export default defineComponent({
     text-align: center;
     font-size: 1.2rem;
     font-weight: 700;
-    color: var(--color, #444);
     text-shadow: 0 0 0.2rem #0008;
     grid-area: footer;
+    position: relative;
 
-    &--shame {
-      font-weight: 300;
-      color: #000;
-    }
   }
 
-  &__footer-alt {
+  &__last-user {
+    transition: all 0.2s linear;
+    position: absolute;
+    color: var(--color, #444);
+    inset: 0;
+  }
+
+  &__shamed-user {
+    transition: all 0.2s linear;
+    position: absolute;
+    inset: 0;
+    font-weight: 300;
+    color: #000;
+  }
+
+  &__shamed-user-alt {
     font-weight: 700;
     color: var(--color, #444);
     text-shadow: 0 0 0.2rem #0008;
+  }
+
+  &__fade-enter-from,
+  &__fade-leave-to {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  &__rotate-enter-from,
+  &__rotate-leave-to {
+    transform: rotateY(180deg);
   }
 }
 </style>
