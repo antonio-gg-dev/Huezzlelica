@@ -1,5 +1,6 @@
 <template>
   <GameBoard
+    v-if="status === Status.ready"
     :color-generator="colorGenerator"
     :random="random"
     :chat="chat"
@@ -12,6 +13,11 @@ import GameBoard from '@/components/GameBoard.vue'
 import { bindings } from '@/bindings'
 import { Chat } from 'twitch-js'
 
+enum Status {
+  connecting = 'connecting',
+  ready = 'ready'
+}
+
 export default defineComponent({
   components: {
     GameBoard
@@ -20,31 +26,45 @@ export default defineComponent({
   data () {
     return {
       ...bindings,
-      acceptingResponses: false,
+      status: Status.connecting as Status,
       chat: null as Chat | null
     }
   },
 
   props: {
-    channel: {
+    token: {
       required: true,
       type: String as PropType<string>
     }
   },
 
+  computed: {
+    Status () {
+      return Status
+    }
+  },
+
   methods: {
-    async connectToChat () {
+    async connectToChat (channel: string) {
       const chat = new Chat({})
 
       await chat.connect()
-      await chat.join(this.channel)
+      await chat.join(channel)
 
       this.chat = chat
     }
   },
 
-  mounted () {
-    this.connectToChat()
+  async mounted () {
+    const validation = await this.tokenValidator.validate(this.token)
+
+    if (!validation.isValid) {
+      return
+    }
+
+    await this.connectToChat(validation.userName)
+
+    this.status = Status.ready
   }
 })
 </script>
