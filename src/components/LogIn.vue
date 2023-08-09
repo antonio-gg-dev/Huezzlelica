@@ -50,6 +50,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue'
+import { ClientId, Uri } from '@/constants'
 
 export default defineComponent({
   props: {
@@ -63,8 +64,8 @@ export default defineComponent({
   computed: {
     logInUrl () {
       const params = new URLSearchParams({
-        client_id: 'cfwuumfbowfdcz3qv6qh1v03dy4s0u',
-        redirect_uri: 'https://huezzlelica.antonio.gg/',
+        client_id: ClientId,
+        redirect_uri: Uri,
         response_type: 'token id_token',
         scope: 'openid moderator:manage:banned_users'
       })
@@ -73,7 +74,7 @@ export default defineComponent({
     },
 
     url (): string {
-      return `https://huezzlelica.antonio.gg/#/play/${this.token}`
+      return `${Uri}#/play/${this.token}`
     }
   },
 

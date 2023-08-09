@@ -1,9 +1,10 @@
 <template>
   <GameBoard
-    v-if="status === Status.ready"
+    v-if="status === Status.ready && chat"
     :color-generator="colorGenerator"
     :random="random"
     :chat="chat"
+    @shame-user="shameUser"
   />
 </template>
 
@@ -27,7 +28,8 @@ export default defineComponent({
     return {
       ...bindings,
       status: Status.connecting as Status,
-      chat: null as Chat | null
+      chat: null as Chat | null,
+      userId: null as string | null
     }
   },
 
@@ -52,6 +54,14 @@ export default defineComponent({
       await chat.join(channel)
 
       this.chat = chat
+    },
+
+    shameUser ({ userId: shamedUserId, round }: { userId: string, round: number }) {
+      if (!this.userId) {
+        return
+      }
+
+      this.timeoutUser.timeout(this.token, this.userId, shamedUserId, round)
     }
   },
 
@@ -61,6 +71,8 @@ export default defineComponent({
     if (!validation.isValid) {
       return
     }
+
+    this.userId = validation.userId
 
     await this.connectToChat(validation.userName)
 

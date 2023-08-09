@@ -158,10 +158,14 @@ export default defineComponent({
       type: Random as PropType<Random>
     },
     chat: {
-      default: null,
-      type: Chat as PropType<Chat | null>
+      required: true,
+      type: Chat as PropType<Chat>
     }
   },
+
+  emits: [
+    'shameUser'
+  ],
 
   data () {
     return {
@@ -209,7 +213,8 @@ export default defineComponent({
         message,
         tags: {
           color: userColor,
-          displayName: userName
+          displayName: userName,
+          userId
         }
       } = event
 
@@ -227,7 +232,7 @@ export default defineComponent({
       }
 
       if (response !== this.correctOption?.number) {
-        this.finishGame(userName, userColor)
+        this.finishGame(userName, userColor, userId)
         return
       }
 
@@ -236,11 +241,15 @@ export default defineComponent({
       this.startRound()
     },
 
-    async finishGame (userName: string, userColor: string): Promise<void> {
+    async finishGame (userName: string, userColor: string, userId: string): Promise<void> {
       this.status = Status.startingGame
 
       this.shamedUserName = userName
       this.shamedUserColor = userColor
+      this.$emit('shameUser', {
+        userId,
+        round: this.round
+      })
 
       if (
         !this.highScoreRound ||
@@ -324,17 +333,9 @@ export default defineComponent({
     }
   },
 
-  watch: {
-    chat () {
-      if (!this.chat) {
-        return
-      }
-
-      this.chat.on(Chat.Events.PRIVATE_MESSAGE, this.handleChat)
-    }
-  },
-
   mounted () {
+    this.chat.on(Chat.Events.PRIVATE_MESSAGE, this.handleChat)
+
     this.startRound()
   }
 })
