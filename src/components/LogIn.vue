@@ -15,6 +15,7 @@
       <a
         class="log-in__button"
         :href="logInUrl"
+        target="_blank"
       >
         Log In!
       </a>
