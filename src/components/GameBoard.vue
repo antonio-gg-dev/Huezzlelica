@@ -135,6 +135,7 @@ import { defineComponent, PropType } from 'vue'
 import { ColorGenerator } from '@/services/ColorGenerator'
 import { Random } from '@/services/Random'
 import { Chat } from 'twitch-js'
+import { Settings } from '@/entities/Settings'
 
 interface Option {
   color: string
@@ -160,6 +161,10 @@ export default defineComponent({
     chat: {
       required: true,
       type: Chat as PropType<Chat>
+    },
+    settings: {
+      required: true,
+      type: Settings as PropType<Settings>
     }
   },
 
@@ -182,7 +187,7 @@ export default defineComponent({
       highScoreUserName: null as string | null,
       highScoreUserColor: null as string | null,
       highScoreRound: null as number | null,
-      countdown: 3 as string | number
+      countdown: this.settings.responseTime as string | number
     }
   },
 
@@ -218,16 +223,17 @@ export default defineComponent({
         }
       } = event
 
-      if (
-        this.status !== Status.waitingForResponse ||
-        this.lastUserName === userName
-      ) {
+      if (this.status !== Status.waitingForResponse) {
         return
       }
 
       const response = parseInt(message)
 
-      if (`${response}` !== message) {
+      if (
+        `${response}` !== message ||
+        response < 1 ||
+        response > 9
+      ) {
         return
       }
 
@@ -277,19 +283,17 @@ export default defineComponent({
     },
 
     async startRound (): Promise<void> {
-      if (
-        !this.firstColor ||
-        this.status === Status.generatingRound
-      ) {
+      if (!this.firstColor) {
         return
       }
 
       this.status = Status.generatingRound
-      this.countdown = 3
-      setTimeout(() => { this.countdown = 2 }, 1_000)
-      setTimeout(() => { this.countdown = 1 }, 2_000)
-      setTimeout(() => { this.countdown = '?' }, 3_000)
-      const generatingRoundTimer = this.sleep(3_200)
+      this.countdown = this.settings.responseTime
+      setTimeout(() => { this.countdown = '?' }, this.settings.responseTime * 1_000)
+
+      for (let countdown = 1; countdown < this.settings.responseTime; countdown++) {
+        setTimeout(() => { this.countdown = countdown }, (this.settings.responseTime - countdown) * 1_000)
+      }
 
       if (this.secondColor) {
         this.firstColor = this.secondColor
@@ -303,9 +307,12 @@ export default defineComponent({
       this.secondColor = this.colorGenerator.generatePair(this.firstColor)
       await this.sleep(250)
 
+      const optionNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        .sort(() => this.random.from([-1, 1]))
+
       const correctOption = {
         color: this.colorGenerator.responseMix(this.firstColor, this.secondColor),
-        number: this.random.intMinMax(1, this.optionsCount)
+        number: optionNumbers[0]
       }
 
       this.correctOption = correctOption
@@ -314,7 +321,7 @@ export default defineComponent({
         { length: this.optionsCount - 1 },
         (_, index) => ({
           color: this.colorGenerator.responseVariation(correctOption.color),
-          number: index + (index < correctOption.number - 1 ? 1 : 2)
+          number: optionNumbers[index + 1]
         })
       )
       colorOptions.push(correctOption)
@@ -328,7 +335,6 @@ export default defineComponent({
         await this.sleep(250)
       }, Promise.resolve())
 
-      await generatingRoundTimer
       this.status = Status.waitingForResponse
     }
   },

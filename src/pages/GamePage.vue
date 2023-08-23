@@ -4,6 +4,7 @@
     :color-generator="colorGenerator"
     :random="random"
     :chat="chat"
+    :settings="settingsRepository.get()"
     @shame-user="shameUser"
   />
 </template>
