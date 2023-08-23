@@ -137,6 +137,14 @@ import { Random } from '@/services/Random'
 import { Chat } from 'twitch-js'
 import { Settings } from '@/entities/Settings'
 
+interface User {
+  userColor: string,
+  userName: string,
+  userId: string,
+  correctResponses: number,
+  wrongResponses: number,
+}
+
 interface Option {
   color: string
   number: number
@@ -187,7 +195,9 @@ export default defineComponent({
       highScoreUserName: null as string | null,
       highScoreUserColor: null as string | null,
       highScoreRound: null as number | null,
-      countdown: this.settings.responseTime as string | number
+      countdown: this.settings.responseTime as string | number,
+      currentRoundResponses: {} as Record<string, number>,
+      currentGameUsers: {} as Record<string, User>
     }
   },
 
@@ -232,19 +242,25 @@ export default defineComponent({
       if (
         `${response}` !== message ||
         response < 1 ||
-        response > 9
+        response > 9 ||
+        this.colorOptions.findIndex(option => option.number === response) === -1
       ) {
         return
       }
 
-      if (response !== this.correctOption?.number) {
-        this.finishGame(userName, userColor, userId)
-        return
+      if (this.currentGameUsers[userId] === undefined) {
+        this.currentGameUsers[userId] = {
+          userColor,
+          userName,
+          userId,
+          correctResponses: 0,
+          wrongResponses: 0
+        }
       }
 
+      this.currentRoundResponses[userName] = response
       this.lastUserName = userName
       this.lastUserColor = userColor
-      this.startRound()
     },
 
     async finishGame (userName: string, userColor: string, userId: string): Promise<void> {
@@ -295,6 +311,8 @@ export default defineComponent({
         setTimeout(() => { this.countdown = countdown }, (this.settings.responseTime - countdown) * 1_000)
       }
 
+      const finishRoundTimer = this.sleep(this.settings.responseTime * 1_000)
+
       if (this.secondColor) {
         this.firstColor = this.secondColor
         this.secondColor = null
@@ -336,6 +354,13 @@ export default defineComponent({
       }, Promise.resolve())
 
       this.status = Status.waitingForResponse
+
+      await finishRoundTimer
+      this.finishRound()
+    },
+
+    finishRound () {
+      this.startRound()
     }
   },
 
