@@ -86,9 +86,12 @@
       name="game-board__fade"
     >
       <div
-        v-for="colorOption in colorOptions"
+        v-for="(colorOption, index) in colorOptions"
         class="game-board__cell"
-        :style="{ '--color': colorOption.color }"
+        :style="{
+          '--color': colorOption.color,
+          '--votes': optionsResponsesPercent[index].toFixed(3)
+        }"
         :key="colorOption.color"
       >
         <span
@@ -137,10 +140,12 @@ import { Random } from '@/services/Random'
 import { Chat } from 'twitch-js'
 import { Settings } from '@/entities/Settings'
 
+type UserId = string
+
 interface User {
   userColor: string,
   userName: string,
-  userId: string,
+  userId: UserId,
   correctResponses: number,
   wrongResponses: number,
 }
@@ -154,6 +159,7 @@ enum Status {
   startingGame = 'startingGame',
   generatingRound = 'generatingRound',
   waitingForResponse = 'waitingForResponse',
+  showingResults = 'showingResults',
 }
 
 export default defineComponent({
@@ -177,7 +183,8 @@ export default defineComponent({
   },
 
   emits: [
-    'shameUser'
+    'shameUser',
+    'shameUsers'
   ],
 
   data () {
@@ -185,8 +192,8 @@ export default defineComponent({
       firstColor: this.colorGenerator.generateMain() as string | null,
       secondColor: null as string | null,
       correctOption: null as Option | null,
-      colorOptions: [] as Option[],
-      round: 0 as number,
+      colorOptions: [] as Array<Option>,
+      round: 1 as number,
       lastUserName: null as string | null,
       lastUserColor: null as string | null,
       status: Status.startingGame as Status,
@@ -196,8 +203,8 @@ export default defineComponent({
       highScoreUserColor: null as string | null,
       highScoreRound: null as number | null,
       countdown: this.settings.responseTime as string | number,
-      currentRoundResponses: {} as Record<string, number>,
-      currentGameUsers: {} as Record<string, User>
+      currentRoundResponses: {} as Record<UserId, number>,
+      currentGameUsers: {} as Record<UserId, User>
     }
   },
 
@@ -218,6 +225,17 @@ export default defineComponent({
       if ((round -= 4) <= 0) return 8
 
       return 9
+    },
+
+    optionsResponsesAmount (): Array<number> {
+      return this.colorOptions
+        .map(color => Object.values(this.currentRoundResponses)
+          .filter(response => response === color.number).length)
+    },
+
+    optionsResponsesPercent (): Array<number> {
+      return this.optionsResponsesAmount
+        .map(amount => (amount / Object.keys(this.currentRoundResponses).length || 0))
     }
   },
 
@@ -258,7 +276,7 @@ export default defineComponent({
         }
       }
 
-      this.currentRoundResponses[userName] = response
+      this.currentRoundResponses[userId] = response
       this.lastUserName = userName
       this.lastUserColor = userColor
     },
@@ -282,7 +300,7 @@ export default defineComponent({
         this.highScoreRound = this.round - 1
       }
 
-      this.round = 0
+      this.round = 1
       this.lastUserName = null
 
       this.secondColor = null
@@ -319,7 +337,6 @@ export default defineComponent({
         await this.sleep(250)
       }
 
-      this.round++
       this.colorOptions = []
 
       this.secondColor = this.colorGenerator.generatePair(this.firstColor)
@@ -335,7 +352,7 @@ export default defineComponent({
 
       this.correctOption = correctOption
 
-      const colorOptions: Option[] = Array.from(
+      const colorOptions: Array<Option> = Array.from(
         { length: this.optionsCount - 1 },
         (_, index) => ({
           color: this.colorGenerator.responseVariation(correctOption.color),
@@ -360,7 +377,36 @@ export default defineComponent({
     },
 
     finishRound () {
-      this.startRound()
+      if (Object.keys(this.currentRoundResponses).length === 0) {
+        // this.finishGame()
+        return
+      }
+
+      const shamedUserIds: Array<UserId> = []
+
+      this.status = Status.showingResults
+
+      for (const userId in this.currentRoundResponses) {
+        if (this.currentGameUsers[userId]) {
+          return
+        }
+
+        if (this.currentRoundResponses[userId] !== this.correctOption?.number) {
+          this.currentGameUsers[userId].wrongResponses++
+          shamedUserIds.push(userId)
+          return
+        }
+
+        this.currentGameUsers[userId].correctResponses++
+      }
+
+      this.$emit('shameUsers', {
+        userIds: shamedUserIds,
+        round: this.round
+      })
+
+      this.round++
+      this.currentRoundResponses = {}
     }
   },
 
@@ -444,6 +490,7 @@ export default defineComponent({
     font-size: 3rem;
     padding-top: 0.5rem;
     background-color: var(--color);
+    position: relative;
 
     &--countdown-container {
       position: absolute;
@@ -460,6 +507,18 @@ export default defineComponent({
       border: solid 1px;
       inset: 0;
       backface-visibility: hidden;
+    }
+
+    &::after {
+      display: block;
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 0.6rem;
+      background-color: #fffa;
+      width: calc(100% * var(--votes, 0));
+      transition: width 0.2s linear;
     }
   }
 
