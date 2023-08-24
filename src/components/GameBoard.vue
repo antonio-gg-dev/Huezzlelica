@@ -90,7 +90,6 @@
         class="game-board__cell"
         :style="{
           '--color': colorOption.color,
-          '--votes': optionsResponsesPercent[index].toFixed(3)
         }"
         :key="colorOption.color"
       >
@@ -99,6 +98,16 @@
           v-if="status === Status.waitingForResponse"
         >
           {{ colorOption.number }}
+        </span>
+
+        <span
+          class="game-board__cell-votes"
+          v-if="status === Status.waitingForResponse"
+          :style="{
+            '--votes': optionsResponsesPercent[index]
+          }"
+        >
+          {{ optionsResponsesPercent[index] }}
         </span>
       </div>
     </TransitionGroup>
@@ -233,9 +242,11 @@ export default defineComponent({
           .filter(response => response === color.number).length)
     },
 
-    optionsResponsesPercent (): Array<number> {
+    optionsResponsesPercent (): Array<string> {
+      const responses = Object.keys(this.currentRoundResponses).length
+
       return this.optionsResponsesAmount
-        .map(amount => (amount / Object.keys(this.currentRoundResponses).length || 0))
+        .map(amount => ((amount / responses || 0) * 100).toFixed(1) + '%')
     }
   },
 
@@ -402,7 +413,7 @@ export default defineComponent({
 
       this.$emit('shameUsers', {
         userIds: shamedUserIds,
-        round: this.round
+        amount: this.round
       })
 
       this.round++
@@ -419,6 +430,8 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/mixins/text-stroke';
+
 .game-board {
   &__container {
     display: grid;
@@ -457,7 +470,8 @@ export default defineComponent({
   &__high-score-alt {
     font-weight: 700;
     color: var(--color, #444);
-    text-shadow: 0 0 0.2rem #0008;
+    paint-order: stroke fill;
+    @include text-stroke(0.1rem, #000);
   }
 
   &__round {
@@ -486,11 +500,12 @@ export default defineComponent({
     width: 6rem;
     transition: all 0.2s linear;
     display: grid;
-    place-content: center;
+    grid-template-rows: 1fr auto;
+    align-items: center;
+    text-align: center;
     font-size: 3rem;
     padding-top: 0.5rem;
     background-color: var(--color);
-    position: relative;
 
     &--countdown-container {
       position: absolute;
@@ -498,6 +513,7 @@ export default defineComponent({
       right: 50%;
       transform: translateX(50%);
       z-index: 10;
+      grid-template-rows: 1fr;
     }
 
     &--countdown-text {
@@ -508,33 +524,51 @@ export default defineComponent({
       inset: 0;
       backface-visibility: hidden;
     }
-
-    &::after {
-      display: block;
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      height: 0.6rem;
-      background-color: #fffa;
-      width: calc(100% * var(--votes, 0));
-      transition: width 0.2s linear;
-    }
   }
 
   &__cell-number {
     color: #fff;
-    text-shadow: 0 0 0.2rem #000;
+    @include text-stroke(0.1rem, #000);
     animation: fade 0.2s;
+    opacity: 1;
 
     @keyframes fade {
       from {
-        color: transparent;
-        text-shadow: 0 0 0.2rem transparent;
+        opacity: 0;
       }
       to {
-        color: #fff;
-        text-shadow: 0 0 0.2rem #000;
+        opacity: 1;
+      }
+    }
+  }
+
+  &__cell-votes {
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    font-size: 1rem;
+    height: 1rem;
+    line-height: 1;
+    opacity: 1;
+    width: 100%;
+    white-space: nowrap;
+    color: #000;
+    paint-order: stroke fill;
+    @include text-stroke(0.1rem, #fff6);
+    animation: fade 0.2s;
+    background: linear-gradient(
+      90deg,
+      #fffa var(--votes, 0%),
+      transparent var(--votes, 0%),
+      transparent
+    );
+
+    @keyframes fade {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
       }
     }
   }
@@ -553,7 +587,6 @@ export default defineComponent({
     text-align: center;
     font-size: 1.2rem;
     font-weight: 700;
-    text-shadow: 0 0 0.2rem #0008;
     grid-area: footer;
     position: relative;
 
@@ -564,6 +597,8 @@ export default defineComponent({
     position: absolute;
     color: var(--color, #444);
     inset: 0;
+    paint-order: stroke fill;
+    @include text-stroke(0.1rem, #000);
   }
 
   &__shamed-user {
@@ -577,7 +612,8 @@ export default defineComponent({
   &__shamed-user-alt {
     font-weight: 700;
     color: var(--color, #444);
-    text-shadow: 0 0 0.2rem #0008;
+    paint-order: stroke fill;
+    @include text-stroke(0.1rem, #000);
   }
 
   &__fade-enter-from,
