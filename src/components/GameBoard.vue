@@ -160,6 +160,24 @@
         :key="Status.wrongResponse"
         alt="Wops!"
       >
+      <TransitionGroup
+        tag="div"
+        v-else-if="status === Status.shamingUser"
+        class="game-board__shame"
+        name="game-board__up"
+      >
+        <div key="a">
+          Who is to blame for these {{ currentGameWrongResponses }} errors?
+        </div>
+        <div
+          v-if="shamedUserName"
+          :key="shamedUserName"
+          class="game-board__shame-picker"
+          :style="{ '--color': shamedUserColor }"
+        >
+          {{ shamedUserName }}
+        </div>
+      </TransitionGroup>
     </TransitionGroup>
   </div>
 </template>
@@ -216,10 +234,7 @@ export default defineComponent({
     }
   },
 
-  emits: [
-    'shameUser',
-    'shameUsers'
-  ],
+  emits: ['shameUser'],
 
   data () {
     return {
@@ -275,6 +290,11 @@ export default defineComponent({
 
     currentRoundResponsesAmount (): number {
       return Object.keys(this.currentRoundResponses).length
+    },
+
+    currentGameWrongResponses (): number {
+      return Object.values(this.currentGameUsers)
+        .reduce((wrongResponses, currentGameUser) => wrongResponses + currentGameUser.wrongResponses, 0)
     }
   },
 
@@ -320,15 +340,52 @@ export default defineComponent({
       this.lastUserColor = userColor
     },
 
-    async finishGame (): Promise<void> {
+    async finishShame (): Promise<void> {
       this.status = Status.shamingUser
+      const shamingUser = this.sleep(10_000)
 
-      // this.shamedUserName = userName
-      // this.shamedUserColor = userColor
-      // this.$emit('shameUser', {
-      //   userId,
-      //   round: this.round
-      // })
+      let counter = 50
+      let timeout = 50
+      let previousShamedUser = null as string | null
+
+      while (timeout < 7_000) {
+        counter *= 1.05
+        timeout += counter
+
+        setTimeout(() => {
+          const shamedUser = Object.values(this.currentGameUsers)
+            .filter(gameUser => gameUser.wrongResponses && gameUser.userName !== previousShamedUser)
+            .sort(() => this.random.from([1, -1]))[0]
+
+          previousShamedUser = shamedUser.userName
+          this.shamedUserName = shamedUser.userName
+          this.shamedUserColor = shamedUser.userColor
+        }, timeout)
+      }
+
+      await this.sleep(8_000)
+      Object.values(this.currentGameUsers)
+        .reduce((shamedTicket, gameUser) => {
+          if (shamedTicket < gameUser.wrongResponses) {
+            this.shamedUserName = gameUser.userName
+            this.shamedUserColor = gameUser.userColor
+
+            this.$emit('shameUser', {
+              userId: gameUser.userId,
+              amount: this.settings.shameTime * this.currentGameWrongResponses
+            })
+          }
+
+          return shamedTicket - gameUser.wrongResponses
+        }, this.random.intMinMax(1, this.currentGameWrongResponses))
+
+      await shamingUser
+    },
+
+    async finishGame (): Promise<void> {
+      if (Object.values(this.currentGameUsers).length) {
+        await this.finishShame()
+      }
 
       this.status = Status.startingGame
 
@@ -342,6 +399,7 @@ export default defineComponent({
           .toLocaleString(DateTime.DATE_MED)
       }
 
+      this.currentGameUsers = {}
       this.round = 1
       this.lastUserName = null
 
@@ -440,7 +498,7 @@ export default defineComponent({
           this.currentGameUsers[userId].wrongResponses++
           this.$emit('shameUser', {
             userId,
-            amount: this.settings.responseTime + 5
+            amount: this.settings.responseTime
           })
           continue
         }
@@ -472,6 +530,43 @@ export default defineComponent({
   mounted () {
     this.chat.on(Chat.Events.PRIVATE_MESSAGE, this.handleChat)
 
+    this.currentGameUsers.uwu = {
+      wrongResponses: 3,
+      correctResponses: 0,
+      userColor: '#f00',
+      userId: 'uwu',
+      userName: 'Tita_Kati'
+    }
+    this.currentGameUsers.owo = {
+      wrongResponses: 1,
+      correctResponses: 0,
+      userColor: '#ff0',
+      userId: 'owo',
+      userName: 'RothioTome'
+    }
+    this.currentGameUsers.ewe = {
+      wrongResponses: 9,
+      correctResponses: 0,
+      userColor: '#f0f',
+      userId: 'ewe',
+      userName: 'Ildesir'
+    }
+    this.currentGameUsers.awa = {
+      wrongResponses: 1,
+      correctResponses: 0,
+      userColor: '#0f0',
+      userId: 'awa',
+      userName: 'luz_bot'
+    }
+    this.currentGameUsers.iwi = {
+      wrongResponses: 12,
+      correctResponses: 0,
+      userColor: '#0ff',
+      userId: 'iwi',
+      userName: 'razielart'
+    }
+
+    this.finishGame()
     // this.startRound()
   }
 })
@@ -490,6 +585,7 @@ export default defineComponent({
     aspect-ratio: 1 / 1;
     border-radius: 2rem;
     padding: 2rem;
+    overflow: hidden;
     grid-template-areas:
       "high-score"
       "round"
@@ -665,6 +761,26 @@ export default defineComponent({
 
   &__result-image {
     height: 20rem;
+    transition: all 0.2s linear;
+  }
+
+  &__shame {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    z-index: 30;
+    transition: all 0.2s linear;
+  }
+
+  &__shame-picker {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--color, #444);
+    @include text-stroke(0.1rem, #000);
     transition: all 0.2s linear;
   }
 
