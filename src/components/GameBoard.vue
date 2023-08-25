@@ -19,23 +19,19 @@
       name="game-board__fade"
     >
       <span
-        v-if="highScoreRound && highScoreUserName"
+        v-if="highScoreRound && highScoreAt"
         class="game-board__high-score-text"
       >
         HIGH SCORE:
-        <span
-          class="game-board__high-score-alt"
-          :style="{ '--color': highScoreUserColor }"
-        >
+        <strong class="game-board__high-score-alt">
           {{ highScoreRound }}
-        </span><br>
-        by
-        <span
-          class="game-board__high-score-alt"
-          :style="{ '--color': highScoreUserColor }"
-        >
-          {{ highScoreUserName }}
-        </span>
+        </strong><br>
+        <small class="game-board__high-score-at">
+          at
+          <strong class="game-board__high-score-alt">
+            {{ highScoreAt }}
+          </strong>
+        </small>
       </span>
     </TransitionGroup>
 
@@ -142,7 +138,7 @@
         >
           {{ shamedUserName }}
         </span>!
-    </span>
+      </span>
     </TransitionGroup>
 
     <TransitionGroup
@@ -155,12 +151,14 @@
         src="/img/correct.svg"
         class="game-board__result-image"
         :key="Status.correctResponse"
+        alt="Success!"
       >
       <img
         v-else-if="status === Status.wrongResponse"
         src="/img/wrong.svg"
         class="game-board__result-image"
         :key="Status.wrongResponse"
+        alt="Wops!"
       >
     </TransitionGroup>
   </div>
@@ -172,6 +170,7 @@ import { ColorGenerator } from '@/services/ColorGenerator'
 import { Random } from '@/services/Random'
 import { Chat } from 'twitch-js'
 import { Settings } from '@/entities/Settings'
+import { DateTime } from 'luxon'
 
 type UserId = string
 
@@ -194,6 +193,7 @@ enum Status {
   waitingForResponse = 'waitingForResponse',
   wrongResponse = 'wrongResponse',
   correctResponse = 'correctResponse',
+  shamingUser = 'shamingUser',
 }
 
 export default defineComponent({
@@ -233,9 +233,8 @@ export default defineComponent({
       status: Status.startingGame as Status,
       shamedUserName: null as string | null,
       shamedUserColor: null as string | null,
-      highScoreUserName: null as string | null,
-      highScoreUserColor: null as string | null,
       highScoreRound: null as number | null,
+      highScoreAt: null as string | null,
       countdown: this.settings.responseTime as string | number,
       currentRoundResponses: {} as Record<UserId, number>,
       currentGameUsers: {} as Record<UserId, User>
@@ -322,7 +321,7 @@ export default defineComponent({
     },
 
     async finishGame (): Promise<void> {
-      this.status = Status.startingGame
+      this.status = Status.shamingUser
 
       // this.shamedUserName = userName
       // this.shamedUserColor = userColor
@@ -331,13 +330,16 @@ export default defineComponent({
       //   round: this.round
       // })
 
+      this.status = Status.startingGame
+
       if (
         !this.highScoreRound ||
         this.highScoreRound < this.round - 1
       ) {
-        this.highScoreUserName = this.lastUserName
-        this.highScoreUserColor = this.lastUserColor
         this.highScoreRound = this.round - 1
+        this.highScoreAt = DateTime.now()
+          .setLocale('en-US')
+          .toLocaleString(DateTime.DATE_MED)
       }
 
       this.round = 1
@@ -427,7 +429,6 @@ export default defineComponent({
         return
       }
 
-      const shamedUserIds: Array<UserId> = []
       let correctResponses = 0
 
       for (const userId in this.currentRoundResponses) {
@@ -437,18 +438,16 @@ export default defineComponent({
 
         if (this.currentRoundResponses[userId] !== this.correctOption?.number) {
           this.currentGameUsers[userId].wrongResponses++
-          shamedUserIds.push(userId)
+          this.$emit('shameUser', {
+            userId,
+            amount: this.settings.responseTime + 5
+          })
           continue
         }
 
         this.currentGameUsers[userId].correctResponses++
         correctResponses++
       }
-
-      this.$emit('shameUsers', {
-        userIds: shamedUserIds,
-        amount: this.settings.responseTime + 5
-      })
 
       if (
         correctResponses < Math.max(...this.optionsResponsesAmount) ||
@@ -473,7 +472,7 @@ export default defineComponent({
   mounted () {
     this.chat.on(Chat.Events.PRIVATE_MESSAGE, this.handleChat)
 
-    this.startRound()
+    // this.startRound()
   }
 })
 </script>
@@ -518,9 +517,10 @@ export default defineComponent({
 
   &__high-score-alt {
     font-weight: 700;
-    color: var(--color, #444);
-    paint-order: stroke fill;
-    @include text-stroke(0.1rem, #000);
+  }
+
+  &__high-score-at {
+    font-size: 1.5rem;
   }
 
   &__round {
@@ -602,7 +602,6 @@ export default defineComponent({
     width: 100%;
     white-space: nowrap;
     color: #000;
-    paint-order: stroke fill;
     @include text-stroke(0.1rem, #fff6);
     animation: fade 0.2s;
     background: linear-gradient(
@@ -652,7 +651,6 @@ export default defineComponent({
   &__footer-alt {
     font-weight: 700;
     color: var(--color, #444);
-    paint-order: stroke fill;
     @include text-stroke(0.1rem, #000);
   }
 
