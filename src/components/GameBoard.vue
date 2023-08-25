@@ -42,7 +42,7 @@
     <TransitionGroup
       tag="div"
       class="game-board__round"
-      name="game-board__fade"
+      name="game-board__up"
     >
       <span
         class="game-board__round-text"
@@ -115,29 +115,53 @@
     <TransitionGroup
       tag="div"
       class="game-board__footer"
-      name="game-board__fade"
+      name="game-board__up"
     >
       <span
         v-if="lastUserName"
-        class="game-board__last-user"
-        :style="{ '--color': lastUserColor }"
+        class="game-board__footer-text"
         :key="lastUserName"
       >
-        {{ lastUserName }}
+        <span
+          class="game-board__footer-alt"
+          :style="{ '--color': lastUserColor }"
+        >
+          {{ lastUserName }}
+        </span>
+        voted
       </span>
       <span
         v-else-if="shamedUserName"
-        class="game-board__shamed-user"
+        class="game-board__footer-text"
         :key="shamedUserName"
       >
-      Shame on
-      <span
-        class="game-board__shamed-user-alt"
-        :style="{ '--color': shamedUserColor }"
-      >
-        {{ shamedUserName }}
-      </span>!
+        Shame on
+        <span
+          class="game-board__footer-alt"
+          :style="{ '--color': shamedUserColor }"
+        >
+          {{ shamedUserName }}
+        </span>!
     </span>
+    </TransitionGroup>
+
+    <TransitionGroup
+      tag="div"
+      class="game-board__result"
+      name="game-board__fade"
+    >
+      <img
+        v-if="status === Status.correctResponse"
+        src="/img/correct.svg"
+        class="game-board__result-image"
+        :key="Status.correctResponse"
+      >
+      <img
+        v-else-if="status === Status.wrongResponse"
+        src="/img/wrong.svg"
+        class="game-board__result-image"
+        :key="Status.wrongResponse"
+      >
     </TransitionGroup>
   </div>
 </template>
@@ -168,7 +192,8 @@ enum Status {
   startingGame = 'startingGame',
   generatingRound = 'generatingRound',
   waitingForResponse = 'waitingForResponse',
-  showingResults = 'showingResults',
+  wrongResponse = 'wrongResponse',
+  correctResponse = 'correctResponse',
 }
 
 export default defineComponent({
@@ -243,10 +268,14 @@ export default defineComponent({
     },
 
     optionsResponsesPercent (): Array<string> {
-      const responses = Object.keys(this.currentRoundResponses).length
+      const responses = this.currentRoundResponsesAmount
 
       return this.optionsResponsesAmount
         .map(amount => ((amount / responses || 0) * 100).toFixed(1) + '%')
+    },
+
+    currentRoundResponsesAmount (): number {
+      return Object.keys(this.currentRoundResponses).length
     }
   },
 
@@ -292,15 +321,15 @@ export default defineComponent({
       this.lastUserColor = userColor
     },
 
-    async finishGame (userName: string, userColor: string, userId: string): Promise<void> {
+    async finishGame (): Promise<void> {
       this.status = Status.startingGame
 
-      this.shamedUserName = userName
-      this.shamedUserColor = userColor
-      this.$emit('shameUser', {
-        userId,
-        round: this.round
-      })
+      // this.shamedUserName = userName
+      // this.shamedUserColor = userColor
+      // this.$emit('shameUser', {
+      //   userId,
+      //   round: this.round
+      // })
 
       if (
         !this.highScoreRound ||
@@ -387,37 +416,57 @@ export default defineComponent({
       this.finishRound()
     },
 
-    finishRound () {
-      if (Object.keys(this.currentRoundResponses).length === 0) {
-        // this.finishGame()
+    async finishRound () {
+      const showingResults = this.sleep(1_000)
+
+      if (this.currentRoundResponsesAmount === 0) {
+        this.status = Status.wrongResponse
+
+        await showingResults
+        this.finishGame()
         return
       }
 
       const shamedUserIds: Array<UserId> = []
-
-      this.status = Status.showingResults
+      let correctResponses = 0
 
       for (const userId in this.currentRoundResponses) {
-        if (this.currentGameUsers[userId]) {
-          return
+        if (!this.currentGameUsers[userId]) {
+          continue
         }
 
         if (this.currentRoundResponses[userId] !== this.correctOption?.number) {
           this.currentGameUsers[userId].wrongResponses++
           shamedUserIds.push(userId)
-          return
+          continue
         }
 
         this.currentGameUsers[userId].correctResponses++
+        correctResponses++
       }
 
       this.$emit('shameUsers', {
         userIds: shamedUserIds,
-        amount: this.round
+        amount: this.settings.responseTime + 5
       })
 
+      if (
+        correctResponses < Math.max(...this.optionsResponsesAmount) ||
+        this.optionsResponsesAmount.filter(responses => responses === correctResponses).length > 1
+      ) {
+        this.status = Status.wrongResponse
+
+        await showingResults
+        this.finishGame()
+        return
+      }
+
+      this.status = Status.correctResponse
       this.round++
       this.currentRoundResponses = {}
+
+      await showingResults
+      this.startRound()
     }
   },
 
@@ -545,10 +594,10 @@ export default defineComponent({
   &__cell-votes {
     display: flex;
     justify-content: center;
-    align-content: center;
+    padding-top: 0.2rem;
     font-size: 1rem;
-    height: 1rem;
     line-height: 1;
+    height: 1.2rem;
     opacity: 1;
     width: 100%;
     white-space: nowrap;
@@ -592,16 +641,7 @@ export default defineComponent({
 
   }
 
-  &__last-user {
-    transition: all 0.2s linear;
-    position: absolute;
-    color: var(--color, #444);
-    inset: 0;
-    paint-order: stroke fill;
-    @include text-stroke(0.1rem, #000);
-  }
-
-  &__shamed-user {
+  &__footer-text {
     transition: all 0.2s linear;
     position: absolute;
     inset: 0;
@@ -609,17 +649,42 @@ export default defineComponent({
     color: #000;
   }
 
-  &__shamed-user-alt {
+  &__footer-alt {
     font-weight: 700;
     color: var(--color, #444);
     paint-order: stroke fill;
     @include text-stroke(0.1rem, #000);
   }
 
+  &__result {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+  }
+
+  &__result-image {
+    height: 20rem;
+    transition: all 0.2s linear;
+  }
+
   &__fade-enter-from,
   &__fade-leave-to {
     opacity: 0;
     transform: scale(0.5);
+  }
+
+  &__up {
+    &-enter-from {
+      opacity: 0;
+      transform: scale(0.5) translateY(2rem);
+    }
+    &-leave-to {
+      opacity: 0;
+      transform: scale(0.5) translateY(-2rem);
+    }
   }
 
   &__rotate-enter-from,

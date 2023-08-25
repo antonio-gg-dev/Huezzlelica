@@ -1,7 +1,7 @@
 import { ClientId } from '@/constants'
 
 export class TimeoutUser {
-  public async timeout (token: string, userId: string, shamedUserId: string, round: number): Promise<void> {
+  public async timeout (token: string, userId: string, shamedUserId: string, amount: number): Promise<void> {
     const params = new URLSearchParams({
       broadcaster_id: userId,
       moderator_id: userId
@@ -16,7 +16,7 @@ export class TimeoutUser {
       body: JSON.stringify({
         data: {
           user_id: shamedUserId,
-          duration: round * 10
+          duration: amount
         }
       })
     })

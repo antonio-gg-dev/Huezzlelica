@@ -43,6 +43,9 @@
       </div>
 
       <div class="log-in__info">
+        <strong class="log-in__info-title">
+          Do not display this URL on your stream.
+        </strong>
         Copy this link into OBS Browser Source to start playing.
       </div>
     </div>
@@ -176,6 +179,12 @@ export default defineComponent({
     border-left: #2ecc71 solid 0.5rem;
     padding: 1rem 2rem;
     border-radius: 0.1rem;
+  }
+
+  &__info-title {
+    display: block;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
   }
 }
 </style>
