@@ -2,6 +2,10 @@ import { ClientId } from '@/constants'
 
 export class TimeoutUser {
   public async timeout (token: string, userId: string, shamedUserId: string, amount: number): Promise<void> {
+    if (!amount) {
+      return
+    }
+
     const params = new URLSearchParams({
       broadcaster_id: userId,
       moderator_id: userId

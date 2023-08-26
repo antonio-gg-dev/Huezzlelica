@@ -189,6 +189,12 @@
           {{ shameObituary }}
         </div>
       </TransitionGroup>
+      <SettingsScreen
+        v-if="showSettings"
+        :settings="settings"
+        @save-settings="$emit('saveSettings')"
+        key="settings"
+      />
     </TransitionGroup>
   </div>
 </template>
@@ -200,6 +206,7 @@ import { Random } from '@/services/Random'
 import { Chat } from 'twitch-js'
 import { Settings } from '@/entities/Settings'
 import { DateTime } from 'luxon'
+import SettingsScreen from '@/components/SettingsScreen.vue'
 
 type UserId = string
 
@@ -226,6 +233,9 @@ enum Status {
 }
 
 export default defineComponent({
+  components: {
+    SettingsScreen
+  },
   props: {
     colorGenerator: {
       required: true,
@@ -265,7 +275,8 @@ export default defineComponent({
       countdown: this.settings.responseTime as string | number,
       currentRoundResponses: {} as Record<UserId, number>,
       currentGameUsers: {} as Record<UserId, User>,
-      shameObituary: null as string | null
+      shameObituary: null as string | null,
+      showSettings: false as boolean
     }
   },
 
@@ -712,7 +723,7 @@ export default defineComponent({
       transition: all 0.4s linear;
       background: #fff8;
       position: absolute;
-      border: solid 1px;
+      border: solid 1px #000;
       inset: 0;
       backface-visibility: hidden;
     }
