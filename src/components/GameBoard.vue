@@ -166,7 +166,10 @@
         class="game-board__shame"
         name="game-board__up"
       >
-        <div key="a">
+        <div
+          class="game-board__shame-title"
+          key="title"
+        >
           Who is to blame for these {{ currentGameWrongResponses }} errors?
         </div>
         <div
@@ -176,6 +179,14 @@
           :style="{ '--color': shamedUserColor }"
         >
           {{ shamedUserName }}
+
+        </div>
+        <div
+          v-if="shameObituary"
+          class="game-board__shame-obituary"
+          key="obituary"
+        >
+          {{ shameObituary }}
         </div>
       </TransitionGroup>
     </TransitionGroup>
@@ -252,7 +263,8 @@ export default defineComponent({
       highScoreAt: null as string | null,
       countdown: this.settings.responseTime as string | number,
       currentRoundResponses: {} as Record<UserId, number>,
-      currentGameUsers: {} as Record<UserId, User>
+      currentGameUsers: {} as Record<UserId, User>,
+      shameObituary: null as string | null
     }
   },
 
@@ -340,9 +352,9 @@ export default defineComponent({
       this.lastUserColor = userColor
     },
 
-    async finishShame (): Promise<void> {
+    async bigShame (): Promise<void> {
       this.status = Status.shamingUser
-      const shamingUser = this.sleep(10_000)
+      const shamingUser = this.sleep(15_000)
 
       let counter = 50
       let timeout = 50
@@ -357,6 +369,10 @@ export default defineComponent({
             .filter(gameUser => gameUser.wrongResponses && gameUser.userName !== previousShamedUser)
             .sort(() => this.random.from([1, -1]))[0]
 
+          if (!shamedUser) {
+            return
+          }
+
           previousShamedUser = shamedUser.userName
           this.shamedUserName = shamedUser.userName
           this.shamedUserColor = shamedUser.userColor
@@ -365,10 +381,73 @@ export default defineComponent({
 
       await this.sleep(8_000)
       Object.values(this.currentGameUsers)
+        .sort(() => this.random.from([1, -1]))
         .reduce((shamedTicket, gameUser) => {
-          if (shamedTicket < gameUser.wrongResponses) {
+          if (shamedTicket <= gameUser.wrongResponses) {
             this.shamedUserName = gameUser.userName
             this.shamedUserColor = gameUser.userColor
+            this.shameObituary = this.random.from([
+              `Looks like someone with ${gameUser.wrongResponses} mistakes is to blame!`,
+              `It's the one with ${gameUser.wrongResponses} errors that brought us down!`,
+              `Oh no! Our downfall was caused by the person with ${gameUser.wrongResponses} mistakes.`,
+              `Regrettably, someone with ${gameUser.wrongResponses} slip-ups made us lose.`,
+              `Busted! The one with ${gameUser.wrongResponses} errors is the culprit.`,
+              `It seems like the individual with ${gameUser.wrongResponses} mistakes is the weak link.`,
+              `Missteps counted: ${gameUser.wrongResponses}. You know who you are!`,
+              `Justice has its eyes on the person with ${gameUser.wrongResponses} errors.`,
+              `Our fall can be traced back to the one with ${gameUser.wrongResponses} mistakes.`,
+              `Alarm bells ring for the one with ${gameUser.wrongResponses} blunders.`,
+              `We could've made it, if not for the player with ${gameUser.wrongResponses} errors.`,
+              `Mistakes were made, especially by the one with ${gameUser.wrongResponses} of them.`,
+              `Somebody with ${gameUser.wrongResponses} errors just became our Achilles' heel.`,
+              `Ouch! The player with ${gameUser.wrongResponses} mistakes just tripped us up.`,
+              `The spotlight's on the one with ${gameUser.wrongResponses} slip-ups. It's you, isn't it?`,
+              `We were so close! The one with ${gameUser.wrongResponses} errors, stand up!`,
+              `It's always the silent errors. Especially the ${gameUser.wrongResponses} from that person.`,
+              `We're only as strong as our weakest link, and this time it's the one with ${gameUser.wrongResponses} mistakes.`,
+              `Eyes are on the player who made ${gameUser.wrongResponses} errors.`,
+              `A chain of events led us here, starting with the ${gameUser.wrongResponses} mistakes from you-know-who.`,
+              `Who has ${gameUser.wrongResponses} errors? Step forward, it's time to face the music.`,
+              `Our journey halted because of the one with ${gameUser.wrongResponses} mistakes.`,
+              `Wish we could've avoided this, especially the person with ${gameUser.wrongResponses} errors.`,
+              `Did you hear about the player with ${gameUser.wrongResponses} mistakes? That's where things went sideways.`,
+              `The domino effect started with the one who made ${gameUser.wrongResponses} blunders.`,
+              `History will remember the one with ${gameUser.wrongResponses} mistakes today.`,
+              `Tales will be told of the player who made ${gameUser.wrongResponses} errors. Not the good kind, though.`,
+              `The path was clear, until the one with ${gameUser.wrongResponses} mistakes stepped in.`,
+              `If only we could turn back time, especially for the person with ${gameUser.wrongResponses} slip-ups.`,
+              `Whispers go around about the one with ${gameUser.wrongResponses} mistakes. Any guesses?`,
+              `Rumor has it, the one with ${gameUser.wrongResponses} errors is hiding among us.`,
+              `We had the momentum! Until it was broken by the one with ${gameUser.wrongResponses} blunders.`,
+              `Legends speak of players making mistakes, but today it's about the one with ${gameUser.wrongResponses}.`,
+              `A perfect storm was created by someone, especially the one with ${gameUser.wrongResponses} slip-ups.`,
+              `Guess who has ${gameUser.wrongResponses} mistakes and halted our progress? The suspense!`,
+              `Turns out, our Kryptonite was the player with ${gameUser.wrongResponses} errors.`,
+              `Roll the dice and it often lands on the one with ${gameUser.wrongResponses} mistakes.`,
+              `We drew the short straw today, thanks to the player with ${gameUser.wrongResponses} errors.`,
+              `Behind every downfall is a mistake or ${gameUser.wrongResponses} of them, in this case.`,
+              `It's a twist in the tale, starring the one with ${gameUser.wrongResponses} blunders.`,
+              `Everything was going smoothly until the player with ${gameUser.wrongResponses} errors threw us off track!`,
+              `Today's defeat? Courtesy of the one with ${gameUser.wrongResponses} mistakes.`,
+              `We had it all! And then came along the player with ${gameUser.wrongResponses} blunders.`,
+              `The one with ${gameUser.wrongResponses} errors? Yeah, they're the reason we're not celebrating a win right now.`,
+              `Our hopes were dashed, thanks to those ${gameUser.wrongResponses} mistakes from that individual.`,
+              `We were on the verge of glory, but the one with ${gameUser.wrongResponses} slip-ups changed the game.`,
+              `The trophy was almost ours, if not for the ${gameUser.wrongResponses} mistakes from that player.`,
+              `The victory song turned into a lament, all because of the one with ${gameUser.wrongResponses} blunders.`,
+              `We were writing a success story until the player with ${gameUser.wrongResponses} errors rewrote the ending.`,
+              `Blame the weather, blame the stars, but most of all, blame the one with ${gameUser.wrongResponses} mistakes.`,
+              `The road to success was blocked by the one and only with ${gameUser.wrongResponses} slip-ups.`,
+              `In the grand scheme of things, those ${gameUser.wrongResponses} errors were our downfall.`,
+              `Victory was in the air, until the scent of ${gameUser.wrongResponses} mistakes overpowered it.`,
+              `The dream was alive, but got crushed under the weight of ${gameUser.wrongResponses} errors.`,
+              `We had a game plan, but the one with ${gameUser.wrongResponses} blunders had other plans.`,
+              `A single player can change the game, especially when they come with ${gameUser.wrongResponses} mistakes.`,
+              `We could see the finish line, but the one with ${gameUser.wrongResponses} errors clouded our vision.`,
+              `It was within our grasp! But those ${gameUser.wrongResponses} slip-ups let it slip away.`,
+              `The headlines would've been different, if not for the one with ${gameUser.wrongResponses} mistakes.`,
+              `Though the one with ${gameUser.wrongResponses} mistakes may have stumbled, remember we're all in this together. Let's pick each other up and try again!`
+            ])
 
             this.$emit('shameUser', {
               userId: gameUser.userId,
@@ -384,7 +463,7 @@ export default defineComponent({
 
     async finishGame (): Promise<void> {
       if (Object.values(this.currentGameUsers).length) {
-        await this.finishShame()
+        await this.bigShame()
       }
 
       this.status = Status.startingGame
@@ -399,6 +478,7 @@ export default defineComponent({
           .toLocaleString(DateTime.DATE_MED)
       }
 
+      this.shameObituary = null
       this.currentGameUsers = {}
       this.round = 1
       this.lastUserName = null
@@ -530,44 +610,7 @@ export default defineComponent({
   mounted () {
     this.chat.on(Chat.Events.PRIVATE_MESSAGE, this.handleChat)
 
-    this.currentGameUsers.uwu = {
-      wrongResponses: 3,
-      correctResponses: 0,
-      userColor: '#f00',
-      userId: 'uwu',
-      userName: 'Tita_Kati'
-    }
-    this.currentGameUsers.owo = {
-      wrongResponses: 1,
-      correctResponses: 0,
-      userColor: '#ff0',
-      userId: 'owo',
-      userName: 'RothioTome'
-    }
-    this.currentGameUsers.ewe = {
-      wrongResponses: 9,
-      correctResponses: 0,
-      userColor: '#f0f',
-      userId: 'ewe',
-      userName: 'Ildesir'
-    }
-    this.currentGameUsers.awa = {
-      wrongResponses: 1,
-      correctResponses: 0,
-      userColor: '#0f0',
-      userId: 'awa',
-      userName: 'luz_bot'
-    }
-    this.currentGameUsers.iwi = {
-      wrongResponses: 12,
-      correctResponses: 0,
-      userColor: '#0ff',
-      userId: 'iwi',
-      userName: 'razielart'
-    }
-
-    this.finishGame()
-    // this.startRound()
+    this.startRound()
   }
 })
 </script>
@@ -770,17 +813,32 @@ export default defineComponent({
     background: #fff;
     z-index: 30;
     transition: all 0.2s linear;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+  }
+
+  &__shame-title {
+    font-size: 2rem;
+    font-weight: 300;
+    transition: all 0.2s linear;
+    padding: 6rem 2rem;
   }
 
   &__shame-picker {
     position: absolute;
-    top: 50%;
+    top: calc(50% - 1.5rem);
     width: 100%;
-    text-align: center;
     font-size: 3rem;
     font-weight: 700;
     color: var(--color, #444);
     @include text-stroke(0.1rem, #000);
+    transition: all 0.2s linear;
+  }
+
+  &__shame-obituary {
+    padding: 6rem 2rem;
     transition: all 0.2s linear;
   }
 
