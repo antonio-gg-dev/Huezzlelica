@@ -1,0 +1,16 @@
+@mixin text-stroke($size, $color) {
+  $pS: $size;
+  $nS: -$size;
+  $ps: $size * 0.7071;
+  $ns: -$size * 0.7071;
+
+  text-shadow:
+    $pS  0    0  $color,
+    $ps  $ps  0  $color,
+    0    $pS  0  $color,
+    $ns  $ps  0  $color,
+    $nS  0    0  $color,
+    $ns  $ns  0  $color,
+    0    $nS  0  $color,
+    $ps  $ns  0  $color;
+}

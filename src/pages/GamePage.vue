@@ -4,7 +4,9 @@
     :color-generator="colorGenerator"
     :random="random"
     :chat="chat"
+    :settings="settings"
     @shame-user="shameUser"
+    @save-settings="saveSettings"
   />
 </template>
 
@@ -29,7 +31,8 @@ export default defineComponent({
       ...bindings,
       status: Status.connecting as Status,
       chat: null as Chat | null,
-      userId: null as string | null
+      userId: null as string | null,
+      settings: bindings.settingsRepository.get()
     }
   },
 
@@ -56,12 +59,16 @@ export default defineComponent({
       this.chat = chat
     },
 
-    shameUser ({ userId: shamedUserId, round }: { userId: string, round: number }) {
+    shameUser ({ userId: shamedUserId, amount }: { userId: string, amount: number }) {
       if (!this.userId) {
         return
       }
 
-      this.timeoutUser.timeout(this.token, this.userId, shamedUserId, round)
+      this.timeoutUser.timeout(this.token, this.userId, shamedUserId, amount)
+    },
+
+    saveSettings () {
+      this.settingsRepository.store(this.settings)
     }
   },
 
