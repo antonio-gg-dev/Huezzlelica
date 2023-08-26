@@ -609,7 +609,7 @@ export default defineComponent({
           this.currentGameUsers[userId].wrongResponses++
           this.$emit('shameUser', {
             userId,
-            amount: this.settings.responseTime ? this.settings.responseTime + 5 : 0
+            amount: this.settings.shameRounds ? this.settings.responseTime + 5 : 0
           })
           continue
         }
