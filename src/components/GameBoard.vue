@@ -365,6 +365,10 @@ export default defineComponent({
     },
 
     async bigShame (): Promise<void> {
+      if (!this.currentGameWrongResponses) {
+        return
+      }
+
       this.status = Status.shamingUser
       const shamingUser = this.sleep(15_000)
 
@@ -474,9 +478,7 @@ export default defineComponent({
     },
 
     async finishGame (): Promise<void> {
-      if (Object.values(this.currentGameUsers).length) {
-        await this.bigShame()
-      }
+      await this.bigShame()
 
       this.status = Status.startingGame
 
@@ -516,6 +518,7 @@ export default defineComponent({
         return
       }
 
+      this.currentRoundResponses = {}
       this.status = Status.generatingRound
       this.countdown = this.settings.responseTime
       setTimeout(() => { this.countdown = '?' }, this.settings.responseTime * 1_000)
@@ -593,7 +596,7 @@ export default defineComponent({
           this.currentGameUsers[userId].wrongResponses++
           this.$emit('shameUser', {
             userId,
-            amount: this.settings.responseTime
+            amount: this.settings.responseTime ? this.settings.responseTime + 5 : 0
           })
           continue
         }
@@ -615,7 +618,6 @@ export default defineComponent({
 
       this.status = Status.correctResponse
       this.round++
-      this.currentRoundResponses = {}
 
       await showingResults
       this.startRound()
