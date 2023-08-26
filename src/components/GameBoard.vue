@@ -410,6 +410,7 @@ export default defineComponent({
 
       await this.sleep(8_000)
       Object.values(this.currentGameUsers)
+        .filter(gameUser => gameUser.wrongResponses)
         .sort(() => this.random.from([1, -1]))
         .reduce((shamedTicket, gameUser) => {
           if (shamedTicket <= gameUser.wrongResponses) {
