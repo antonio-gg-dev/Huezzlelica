@@ -19,17 +19,17 @@
       name="game-board__fade"
     >
       <span
-        v-if="highScoreRound && highScoreAt"
+        v-if="settings.highScoreRound && settings.highScoreAt"
         class="game-board__high-score-text"
       >
         HIGH SCORE:
         <strong class="game-board__high-score-alt">
-          {{ highScoreRound }}
+          {{ settings.highScoreRound }}
         </strong><br>
         <small class="game-board__high-score-at">
           at
           <strong class="game-board__high-score-alt">
-            {{ highScoreAt }}
+            {{ settings.highScoreAt }}
           </strong>
         </small>
       </span>
@@ -245,7 +245,10 @@ export default defineComponent({
     }
   },
 
-  emits: ['shameUser'],
+  emits: [
+    'shameUser',
+    'saveSettings'
+  ],
 
   data () {
     return {
@@ -259,8 +262,6 @@ export default defineComponent({
       status: Status.startingGame as Status,
       shamedUserName: null as string | null,
       shamedUserColor: null as string | null,
-      highScoreRound: null as number | null,
-      highScoreAt: null as string | null,
       countdown: this.settings.responseTime as string | number,
       currentRoundResponses: {} as Record<UserId, number>,
       currentGameUsers: {} as Record<UserId, User>,
@@ -469,13 +470,16 @@ export default defineComponent({
       this.status = Status.startingGame
 
       if (
-        !this.highScoreRound ||
-        this.highScoreRound < this.round - 1
+        !this.settings.highScoreRound ||
+        this.settings.highScoreRound < this.round - 1
       ) {
-        this.highScoreRound = this.round - 1
-        this.highScoreAt = DateTime.now()
-          .setLocale('en-US')
-          .toLocaleString(DateTime.DATE_MED)
+        this.settings.setHighScore(
+          this.round - 1,
+          DateTime.now()
+            .setLocale('en-US')
+            .toLocaleString(DateTime.DATE_MED)
+        )
+        this.$emit('saveSettings')
       }
 
       this.shameObituary = null
