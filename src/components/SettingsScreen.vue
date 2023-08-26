@@ -4,7 +4,7 @@
       <strong>Huezzlelica</strong>
       a game developed by
       <strong>Antonio González Gea</strong>
-      to participate in the
+      as entry in the
       <a
         target="_blank"
         href="https://itch.io/jam/numerica-twitch-jam"
@@ -50,6 +50,7 @@
         @change="updateShameTime"
       >
     </label>
+    <!--
     <label class="settings-screen__label">
       Mod timeout immunity
       <input
@@ -59,15 +60,18 @@
         @change="updateModImmunity"
       >
     </label>
+    -->
     <label class="settings-screen__label">
       Reset high score
       <button
         class="settings-screen__button"
         @click="resetHighScore"
+        :disabled="!settings.highScoreAt || !settings.highScoreRound"
       >
         Reset
       </button>
     </label>
+    <!--
     <label class="settings-screen__label">
       Theme
       <button
@@ -77,8 +81,9 @@
         {{ settings.theme }}
       </button>
     </label>
+    -->
 
-    <div class="settings-screen__predecesors">
+    <div class="settings-screen__inspiration">
       Don't forget to play
       <a
         target="_blank"
@@ -93,8 +98,20 @@
       >
         Numerica<!--
       --></a>,
-      the predecessors of this game.
+      the inspiration of this game.
     </div>
+
+    <button
+      title="Close"
+      class="settings-screen__close-button"
+      @click="$emit('close')"
+    >
+      <img
+        class="settings-screen__close-image"
+        src="/img/close.svg"
+        alt=""
+      >
+    </button>
   </div>
 </template>
 
@@ -111,7 +128,8 @@ export default defineComponent({
   },
 
   emits: [
-    'saveSettings'
+    'saveSettings',
+    'close'
   ],
 
   methods: {
@@ -163,6 +181,7 @@ export default defineComponent({
     inset: 0;
     padding: 2rem;
     transition: all 0.2s linear;
+    z-index: 50;
   }
 
   &__label {
@@ -174,19 +193,54 @@ export default defineComponent({
 
   &__input {
     all: unset;
-    padding: 0.4rem 1rem;
-    border: solid 1px #000;
+    padding: 0.5rem 1rem 0.4rem;
+    border: solid 1px #0004;
     border-radius: 99rem;
     width: 4rem;
     text-align: right;
+    transition: border-color 0.2s linear;
+
+    &:hover, &:focus {
+      border-color: #0008;
+    }
   }
 
   &__checkbox {
+    all: unset;
+    width: 2rem;
+    height: 2rem;
+    background: url("~/public/img/checkbox-unchecked.svg") no-repeat center;
+    background-size: contain;
+    cursor: pointer;
+    transition: opacity 0.2s linear;
 
+    &:checked {
+      background: url("~/public/img/checkbox-checked.svg") no-repeat center;
+    }
+
+    &:hover, &:focus {
+      opacity: 0.8;
+    }
   }
 
   &__button {
+    all: unset;
+    cursor: pointer;
+    padding: 0.5rem 1rem 0.4rem;
+    border: solid 1px #0004;
+    border-radius: 99rem;
+    width: 4rem;
+    text-align: center;
+    transition: all 0.2s linear;
 
+    &:hover, &:focus {
+      border-color: #0008;
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
   }
 
   &__credits {
@@ -206,13 +260,35 @@ export default defineComponent({
     }
   }
 
-  &__predecesors {
+  &__inspiration {
     margin-top: 3rem;
     text-align: center;
 
     a {
       color: #2ecc71;
     }
+  }
+
+  &__close-button {
+    all: unset;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2rem;
+    height: 2rem;
+    opacity: 0.2;
+    transition: opacity 0.2s linear;
+    cursor: pointer;
+    text-align: center;
+
+    &:hover, &:focus {
+      opacity: 0.5;
+    }
+  }
+
+  &__close-image {
+    display: inline-block;
+    height: 100%;
   }
 }
 </style>

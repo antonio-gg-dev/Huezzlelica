@@ -193,9 +193,22 @@
         v-if="showSettings"
         :settings="settings"
         @save-settings="$emit('saveSettings')"
+        @close="showSettings = false"
         key="settings"
       />
     </TransitionGroup>
+
+    <button
+      title="Settings"
+      class="game-board__open-settings-button"
+      @click="showSettings = true"
+    >
+      <img
+        class="game-board__open-settings-image"
+        src="/img/settings.svg"
+        alt=""
+      >
+    </button>
   </div>
 </template>
 
@@ -365,6 +378,10 @@ export default defineComponent({
     },
 
     async bigShame (): Promise<void> {
+      if (!this.currentGameWrongResponses) {
+        return
+      }
+
       this.status = Status.shamingUser
       const shamingUser = this.sleep(15_000)
 
@@ -474,9 +491,7 @@ export default defineComponent({
     },
 
     async finishGame (): Promise<void> {
-      if (Object.values(this.currentGameUsers).length) {
-        await this.bigShame()
-      }
+      await this.bigShame()
 
       this.status = Status.startingGame
 
@@ -516,6 +531,7 @@ export default defineComponent({
         return
       }
 
+      this.currentRoundResponses = {}
       this.status = Status.generatingRound
       this.countdown = this.settings.responseTime
       setTimeout(() => { this.countdown = '?' }, this.settings.responseTime * 1_000)
@@ -593,7 +609,7 @@ export default defineComponent({
           this.currentGameUsers[userId].wrongResponses++
           this.$emit('shameUser', {
             userId,
-            amount: this.settings.responseTime
+            amount: this.settings.responseTime ? this.settings.responseTime + 5 : 0
           })
           continue
         }
@@ -615,7 +631,6 @@ export default defineComponent({
 
       this.status = Status.correctResponse
       this.round++
-      this.currentRoundResponses = {}
 
       await showingResults
       this.startRound()
@@ -814,12 +829,12 @@ export default defineComponent({
     display: grid;
     justify-content: center;
     align-items: center;
-    z-index: 20;
   }
 
   &__result-image {
     height: 20rem;
     transition: all 0.2s linear;
+    z-index: 20;
   }
 
   &__shame {
@@ -855,6 +870,29 @@ export default defineComponent({
   &__shame-obituary {
     padding: 6rem 2rem;
     transition: all 0.2s linear;
+  }
+
+  &__open-settings-button {
+    all: unset;
+    position: absolute;
+    top: 1.3rem;
+    right: 1.3rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    opacity: 0.2;
+    transition: opacity 0.2s linear;
+    cursor: pointer;
+    z-index: 40;
+    text-align: center;
+
+    &:hover, &:focus {
+      opacity: 0.5;
+    }
+  }
+
+  &__open-settings-image {
+    display: inline-block;
+    height: 100%;
   }
 
   &__fade-enter-from,
