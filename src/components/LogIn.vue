@@ -46,7 +46,8 @@
         <strong class="log-in__info-title">
           Do not display this URL on your stream.
         </strong>
-        Copy this link into OBS Browser Source to start playing.
+        Copy this link into OBS Browser Source to start playing.<br>
+        To access the settings, press the Interact button in OBS.
       </div>
     </div>
   </div>
