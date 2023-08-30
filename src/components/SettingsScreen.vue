@@ -62,6 +62,15 @@
     </label>
     -->
     <label class="settings-screen__label">
+      Allow change vote
+      <input
+        class="settings-screen__checkbox"
+        type="checkbox"
+        :checked="settings.allowVoteChange"
+        @change="updateAllowVoteChange"
+      >
+    </label>
+    <label class="settings-screen__label">
       Reset high score
       <button
         class="settings-screen__button"
@@ -154,6 +163,12 @@ export default defineComponent({
     updateModImmunity (event: Event) {
       const target = event.target as HTMLInputElement
       this.settings.setModImmunity(target.checked)
+      this.$emit('saveSettings')
+    },
+
+    updateAllowVoteChange (event: Event) {
+      const target = event.target as HTMLInputElement
+      this.settings.setAllowVoteChange(target.checked)
       this.$emit('saveSettings')
     },
 

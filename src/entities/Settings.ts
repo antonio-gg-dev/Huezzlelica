@@ -11,6 +11,7 @@ export interface RawSettings {
   highScoreAt: string | undefined
   shameRounds: boolean | undefined
   modImmunity: boolean | undefined
+  allowVoteChange: boolean | undefined
   theme: Theme | undefined
 }
 
@@ -22,6 +23,7 @@ export class Settings {
     public highScoreAt: string | null,
     public shameRounds: boolean,
     public modImmunity: boolean,
+    public allowVoteChange: boolean,
     public theme: Theme
   ) {}
 
@@ -46,6 +48,10 @@ export class Settings {
     this.modImmunity = modImmunity
   }
 
+  setAllowVoteChange (allowVoteChange: boolean) {
+    this.allowVoteChange = allowVoteChange
+  }
+
   setTheme (theme: Theme) {
     this.theme = theme
   }
@@ -58,6 +64,7 @@ export class Settings {
       highScoreAt: this.highScoreAt ?? undefined,
       shameRounds: this.shameRounds,
       modImmunity: this.modImmunity,
+      allowVoteChange: this.allowVoteChange,
       theme: this.theme
     }
   }
@@ -70,6 +77,7 @@ export class Settings {
       raw.highScoreAt ?? null,
       raw.shameRounds ?? true,
       raw.modImmunity ?? false,
+      raw.allowVoteChange ?? false,
       raw.theme ?? Theme.Light
     )
   }

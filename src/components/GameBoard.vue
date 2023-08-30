@@ -351,6 +351,13 @@ export default defineComponent({
         return
       }
 
+      if (
+        !this.settings.allowVoteChange &&
+        this.currentRoundResponses[userId]
+      ) {
+        return
+      }
+
       const response = parseInt(message)
 
       if (
