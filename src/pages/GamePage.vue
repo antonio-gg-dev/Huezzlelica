@@ -59,12 +59,12 @@ export default defineComponent({
       this.chat = chat
     },
 
-    shameUser ({ userId: shamedUserId, amount }: { userId: string, amount: number }) {
+    shameUser ({ userId: shamedUserId, amount, reason }: { userId: string, amount: number, reason: string }) {
       if (!this.userId) {
         return
       }
 
-      this.timeoutUser.timeout(this.token, this.userId, shamedUserId, amount)
+      this.timeoutUser.timeout(this.token, this.userId, shamedUserId, amount, reason)
     },
 
     saveSettings () {

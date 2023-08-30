@@ -488,7 +488,8 @@ export default defineComponent({
 
             this.$emit('shameUser', {
               userId: gameUser.userId,
-              amount: this.settings.shameTime * this.currentGameWrongResponses
+              amount: this.settings.shameTime * this.currentGameWrongResponses,
+              reason: "Huezzlelica: We have lost the game, and you alone will pay for everyone's mistakes. Better luck next time."
             })
           }
 
@@ -617,7 +618,8 @@ export default defineComponent({
           this.currentGameUsers[userId].wrongResponses++
           this.$emit('shameUser', {
             userId,
-            amount: this.settings.shameRounds ? this.settings.responseTime + 5 : 0
+            amount: this.settings.shameRounds ? this.settings.responseTime + 5 : 0,
+            reason: "Huezzlelica: You have failed to answer correctly and won't be able to participate in the next round."
           })
           continue
         }

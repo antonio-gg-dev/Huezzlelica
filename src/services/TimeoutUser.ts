@@ -1,7 +1,7 @@
 import { ClientId } from '@/constants'
 
 export class TimeoutUser {
-  public async timeout (token: string, userId: string, shamedUserId: string, amount: number): Promise<void> {
+  public async timeout (token: string, userId: string, shamedUserId: string, amount: number, reason: string): Promise<void> {
     if (!amount) {
       return
     }
@@ -20,7 +20,8 @@ export class TimeoutUser {
       body: JSON.stringify({
         data: {
           user_id: shamedUserId,
-          duration: amount
+          duration: amount,
+          reason
         }
       })
     })
