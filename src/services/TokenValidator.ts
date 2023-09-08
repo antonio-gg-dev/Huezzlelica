@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+
 type ValidationResponse = {
   isValid: true,
   userName: string,
@@ -32,6 +34,19 @@ export class TokenValidator {
       login: userName,
       user_id: userId
     } = await response.json() as Response
+
+    fetch('https://api.sheety.co/b49cfa7ef9e80f65fadf9220a998b594/huezzlelica/channel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        channel: {
+          name: userName,
+          timestamp: DateTime.now().toUTC().toISO()
+        }
+      })
+    })
 
     return {
       isValid: true,
